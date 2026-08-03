@@ -24,7 +24,7 @@ class StaffPermissionTests(StaffingPermissionsBase):
     def _assert_created(self, response):
         self.assertEqual(
             response.status_code,
-            status.HTTP_201_CREATED, *
+            status.HTTP_201_CREATED,
             response.data,
         )
 
