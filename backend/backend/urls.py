@@ -27,6 +27,9 @@ urlpatterns = [
     path('api/v1/', include('staffing.urls')),
     path('api/v1/', include('scheduling.urls')),
 
+    # Public
+    path("api/v1/public/", include("scheduling.public_urls")),
+
     path(
         "api/schema/",
         SpectacularAPIView.as_view(),

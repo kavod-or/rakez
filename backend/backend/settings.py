@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'staffing',
     'scheduling',
     'accounts',
+    'availability'
 ]
 
 MIDDLEWARE = [
@@ -87,6 +88,8 @@ REST_FRAMEWORK = {
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+PUBLIC_EVENT_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 178  # Half a year
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
