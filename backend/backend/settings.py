@@ -88,6 +88,7 @@ REST_FRAMEWORK = {
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SECURE_COOKIES = False  # Set to true when providing https
 
 PUBLIC_EVENT_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 178  # Half a year
 

@@ -2,14 +2,12 @@ import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.core import signing
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from accounts.models import EventRole, GlobalRole
 from scheduling.models import Event
 from scheduling.public_tokens import TOKEN_SALT
 from scheduling.public_tokens import issue_public_event_token
@@ -18,8 +16,6 @@ from scheduling.public_tokens import issue_public_event_token
 class PublicEventPermissionTest(APITestCase):
 
     def setUp(self) -> None:
-        user = get_user_model()
-
         self.event_1 = Event.objects.create(
             name="Event 1",
             start=timezone.now() + timedelta(days=1),
@@ -47,9 +43,9 @@ class PublicEventPermissionTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertIn("token", response.data)
-        self.assertIsInstance(response.data["token"], str)
-        self.assertTrue(response.data["token"])
+        self.assertIn("public_event_token", response.cookies)
+        self.assertEqual(response.cookies["public_event_token"].get('path'),
+                         f"/api/v1/public/events/{self.event_1_id}/")
 
     def test_unlock_fails_with_wrong_pin(self):
         response = self.client.post(
@@ -58,8 +54,8 @@ class PublicEventPermissionTest(APITestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, response.data)
-        self.assertNotIn("token", response.data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn("public_event_token", response.cookies)
 
     def test_unlock_fails_for_unknown_event_id(self):
         unknown_event_id = uuid.uuid4()
@@ -71,7 +67,7 @@ class PublicEventPermissionTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND, response.data)
-        self.assertNotIn("token", response.data)
+        self.assertNotIn("public_event_token", response.cookies)
 
     def test_public_event_detail_denied_without_token(self):
         response = self.client.get(
@@ -86,13 +82,13 @@ class PublicEventPermissionTest(APITestCase):
         )
 
     def test_public_event_detail_denied_with_malformed_token(self):
+        self.client.cookies["public_event_token"] = "not-a-valid-token"
         response = self.client.get(
             f"/api/v1/public/events/{self.event_1_id}/",
-            HTTP_AUTHORIZATION="Bearer not-a-valid-token",
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, response.data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_public_event_detail_allowed_with_valid_token(self):
         unlock_response = self.client.post(
@@ -100,13 +96,13 @@ class PublicEventPermissionTest(APITestCase):
             data={"pin": "000000"},
             format="json",
         )
-        self.assertEqual(unlock_response.status_code, status.HTTP_200_OK, unlock_response.data)
+        self.assertEqual(unlock_response.status_code, status.HTTP_200_OK)
 
-        token = unlock_response.data["token"]
+        token = unlock_response.cookies['public_event_token'].value
 
+        self.client.cookies['public_event_token'] = token
         response = self.client.get(
             f"/api/v1/public/events/{self.event_1_id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
             format="json",
         )
 
@@ -121,11 +117,11 @@ class PublicEventPermissionTest(APITestCase):
         )
         self.assertEqual(unlock_response.status_code, status.HTTP_200_OK, unlock_response.data)
 
-        token = unlock_response.data["token"]
+        token = unlock_response.cookies['public_event_token'].value
+        self.client.cookies['public_event_token'] = token
 
         response = self.client.get(
             f"/api/v1/public/events/{self.event_2_id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
             format="json",
         )
 
@@ -140,9 +136,10 @@ class PublicEventPermissionTest(APITestCase):
             salt=TOKEN_SALT,
         )
 
+        self.client.cookies['public_event_token'] = wrong_scope_token
+
         response = self.client.get(
             f"/api/v1/public/events/{self.event_1_id}/",
-            HTTP_AUTHORIZATION=f"Bearer {wrong_scope_token}",
             format="json",
         )
 
@@ -151,10 +148,11 @@ class PublicEventPermissionTest(APITestCase):
     def test_public_event_detail_denied_with_expired_token(self):
         token = issue_public_event_token(self.event_1_id)
 
+        self.client.cookies['public_event_token'] = token
+
         with patch("scheduling.public_tokens.TOKEN_MAX_AGE_SECONDS", 0):
             response = self.client.get(
                 f"/api/v1/public/events/{self.event_1_id}/",
-                HTTP_AUTHORIZATION=f"Bearer {token}",
                 format="json",
             )
 
@@ -168,11 +166,11 @@ class PublicEventPermissionTest(APITestCase):
         )
         self.assertEqual(unlock_response.status_code, status.HTTP_200_OK, unlock_response.data)
 
-        token = unlock_response.data["token"]
+        token = unlock_response.cookies['public_event_token'].value
+        self.client.cookies['public_event_token'] = token
 
         response = self.client.get(
             f"/api/v1/public/events/{self.event_1_id}/",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)

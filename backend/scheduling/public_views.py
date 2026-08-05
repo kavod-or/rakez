@@ -1,24 +1,30 @@
+from django.conf import settings
 from django.contrib.auth.hashers import check_password
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers, status
-from rest_framework.generics import ListAPIView, RetrieveAPIView
+from rest_framework import status
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from .models import Event
 from .public_permissions import HasPublicEventAccess
-from .public_serializers import PublicEventSerializer
+from .public_serializers import PublicEventSerializer, UnlockSerializer, UnlockResponseSerializer
 from .public_tokens import issue_public_event_token
-
-
-class UnlockSerializer(serializers.Serializer):
-    pin = serializers.CharField(min_length=6, max_length=6)
 
 
 class PublicEventUnlockView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=UnlockSerializer,
+        responses={
+            200: UnlockResponseSerializer,
+            403: OpenApiResponse(description="Invalid PIN"),
+            404: OpenApiResponse(description="Event not found"),
+        },
+    )
     def post(self, request, event_public_id):
         event = get_object_or_404(Event, public_id=event_public_id)
 
@@ -29,7 +35,17 @@ class PublicEventUnlockView(APIView):
             return Response({"detail": "Invalid PIN."}, status=status.HTTP_403_FORBIDDEN)
 
         token = issue_public_event_token(event.public_id)
-        return Response({"token": token}, status=status.HTTP_200_OK)
+        response = Response(status=status.HTTP_200_OK)
+        response.set_cookie(
+            key='public_event_token',
+            value=token,
+            max_age=settings.PUBLIC_EVENT_TOKEN_MAX_AGE_SECONDS,
+            httponly=True,
+            secure=settings.SECURE_COOKIES,
+            samesite="Lax",
+            path=f"/api/v1/public/events/{event.public_id}/",
+        )
+        return response
 
 
 class PublicEventDetailView(RetrieveAPIView):

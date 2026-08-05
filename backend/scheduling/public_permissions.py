@@ -8,11 +8,7 @@ class HasPublicEventAccess(BasePermission):
     message = "A valid public event access token is required."
 
     def has_permission(self, request, view):
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return False
-
-        token = auth_header.removeprefix("Bearer ").strip()
+        token = request.COOKIES.get("public_event_token")
         if not token:
             return False
 

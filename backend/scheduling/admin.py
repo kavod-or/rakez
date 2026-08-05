@@ -7,7 +7,6 @@ from django.contrib.auth.hashers import make_password
 from scheduling.models import Shift, ShiftPosition, ShiftAssignment, Event
 
 # Register your models here.
-# admin.site.register(Event)
 admin.site.register(Shift)
 admin.site.register(ShiftPosition)
 admin.site.register(ShiftAssignment)
@@ -47,4 +46,10 @@ class EventAdminForm(forms.ModelForm):
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     form = EventAdminForm
-    readonly_fields = ("pin_hash",)
+    readonly_fields = ("pin_hash", "public_id_display")
+
+    @admin.display(description="Public id")
+    def public_id_display(self, obj):
+        if not obj or not obj.pk:
+            return "-"
+        return obj.public_id
