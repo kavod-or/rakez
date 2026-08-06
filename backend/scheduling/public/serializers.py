@@ -1,7 +1,7 @@
-from .models import Event
+from scheduling.models import Event
 from rest_framework import serializers
 
-from .serializers import FullCleanModelSerializer
+from scheduling.serializers import FullCleanModelSerializer
 
 
 class PublicEventSerializer(FullCleanModelSerializer):

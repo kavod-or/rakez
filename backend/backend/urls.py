@@ -28,7 +28,7 @@ urlpatterns = [
     path('api/v1/', include('scheduling.urls')),
 
     # Public
-    path("api/v1/public/", include("scheduling.public_urls")),
+    path("api/v1/public/", include("scheduling.public.public_urls")),
 
     path(
         "api/schema/",

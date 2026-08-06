@@ -9,8 +9,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from scheduling.models import Event
-from scheduling.public_tokens import TOKEN_SALT
-from scheduling.public_tokens import issue_public_event_token
+from scheduling.public.tokens import TOKEN_SALT, issue_public_event_token
 
 
 class PublicEventPermissionTest(APITestCase):
@@ -150,7 +149,7 @@ class PublicEventPermissionTest(APITestCase):
 
         self.client.cookies['public_event_token'] = token
 
-        with patch("scheduling.public_tokens.TOKEN_MAX_AGE_SECONDS", 0):
+        with patch("scheduling.public.tokens.TOKEN_MAX_AGE_SECONDS", 0):
             response = self.client.get(
                 f"/api/v1/public/events/{self.event_1_id}/",
                 format="json",
