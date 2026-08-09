@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 from .models import Shift, ShiftPosition, ShiftAssignment, Event
 
@@ -60,11 +61,13 @@ class ShiftAssignmentSerializer(FullCleanModelSerializer):
                 staff=validated_data["staff"]
             )
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_qualified(self, obj):
         return obj.staff.positions.filter(
             pk=obj.shift_position.position_id
         ).exists()
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_warnings(self, obj):
         overlapping_assignments = obj.get_overlapping_different_service_assignments()
 

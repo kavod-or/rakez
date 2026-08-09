@@ -4,10 +4,15 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
+from .serializers import LoginRequestSerializer, LoginResponseSerializer, LogoutResponseSerializer, \
+    LogoutRequestSerializer
 
 
 # Create your views here.
 
+@extend_schema(responses=OpenApiResponse(description="CSRF cookie set."))
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @ensure_csrf_cookie
@@ -15,6 +20,8 @@ def csrf_view(request):
     return Response({"detail": "CSRF cookie set."})
 
 
+@extend_schema(request=LoginRequestSerializer, responses=LoginResponseSerializer)
+@extend_schema(responses=OpenApiResponse(description="Login"))
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -51,6 +58,7 @@ def login_view(request):
     )
 
 
+@extend_schema(request=LogoutRequestSerializer, responses=LogoutResponseSerializer)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
@@ -58,6 +66,7 @@ def logout_view(request):
     return Response({"detail": "Logged out"})
 
 
+@extend_schema(responses=OpenApiResponse(description="Me"))
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me_view(request):

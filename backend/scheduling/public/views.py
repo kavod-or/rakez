@@ -9,8 +9,10 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from scheduling.models import Event
-from .permissions import HasPublicEventAccess
-from .serializers import PublicEventSerializer, UnlockSerializer, UnlockResponseSerializer
+from common.public_event_permissions import HasPublicEventAccess
+from scheduling.public.serializers import PublicEventSerializer, UnlockSerializer, \
+    UnlockResponseSerializer
+
 from .tokens import issue_public_event_token
 
 

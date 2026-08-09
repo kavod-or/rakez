@@ -1,7 +1,7 @@
 # backend/scheduling/public_permissions.py
 from rest_framework.permissions import BasePermission
 
-from .tokens import verify_public_event_token
+from scheduling.public.tokens import verify_public_event_token
 
 
 class HasPublicEventAccess(BasePermission):

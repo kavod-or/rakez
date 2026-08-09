@@ -5,7 +5,6 @@ from .serializers import ShiftSerializer, ShiftPositionSerializer, ShiftAssignme
 from .permissions import IsServiceManagerOrReadOnly, IsEventManagerOrReadOnly
 
 
-# Create your views here.
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
