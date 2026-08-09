@@ -4,18 +4,18 @@ export const theme = createTheme({
     palette: {
         mode: 'dark',
         primary: {
-            main: '#8b5cf6',
+            main: '#44A78F',
         },
         secondary: {
-            main: '#2dd4bf',
+            main: '#3D7A6C',
         },
         background: {
             default: '#070b14',
             paper: '#0f172a',
         },
         text: {
-            primary: '#e5eefc',
-            secondary: '#94a3b8',
+            primary: '#E5EEFC',
+            secondary: '#94A3B8',
         },
     },
     shape: {
@@ -67,7 +67,7 @@ export const theme = createTheme({
                     backgroundColor: '#070b14',
                     backgroundImage: `
             radial-gradient(circle at 20% 20%, transparent 28%),
-            radial-gradient(circle at 80% 0%, transparent 24%),
+            radial-gradient(circle at 80% 0%,  transparent 24%),
             radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
             radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px)
           `,
