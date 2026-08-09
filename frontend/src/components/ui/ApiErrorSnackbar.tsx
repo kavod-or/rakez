@@ -1,22 +1,27 @@
-import {Snackbar, Alert} from '@mui/material'
+import {Alert, Snackbar} from '@mui/material'
 
 type ApiErrorSnackbarProps = {
-  open: boolean
-  message: string | null
-  onClose: () => void
+    error: Error | null
+    onClose: () => void
+    autoHideDuration?: number
 }
 
-export function ApiErrorSnackbar({open, message, onClose}: ApiErrorSnackbarProps) {
-  return (
-    <Snackbar
-      open={open}
-      autoHideDuration={3000}
-      onClose={onClose}
-      anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}
-    >
-      <Alert severity="error" variant="filled" onClose={onClose}>
-        {message}
-      </Alert>
-    </Snackbar>
-  )
+export function ApiErrorSnackbar({
+    error,
+    onClose,
+    autoHideDuration = 3000,
+}: ApiErrorSnackbarProps) {
+    return (
+        <Snackbar
+            key={error?.message ?? 'closed'}
+            open={Boolean(error)}
+            autoHideDuration={autoHideDuration}
+            onClose={onClose}
+            anchorOrigin={{vertical: 'bottom', horizontal: 'center'}}
+        >
+            <Alert severity="error" variant="filled" onClose={onClose}>
+                {error?.message}
+            </Alert>
+        </Snackbar>
+    )
 }

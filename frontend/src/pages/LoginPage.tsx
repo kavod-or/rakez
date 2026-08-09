@@ -4,20 +4,14 @@ import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {useMutation} from '@tanstack/react-query'
 import {useNavigate} from 'react-router-dom'
-import {
-    Alert,
-    Box,
-    Button,
-    TextField,
-} from '@mui/material'
+import {Alert, Box, Button, TextField} from '@mui/material'
 
 import {login} from '../api/client'
 import {AppShell} from '../components/layout/AppShell'
 import {Panel} from '../components/layout/Panel'
-import {ApiErrorSnackbar} from "../components/ui/ApiErrorSnackbar.tsx";
+import {ApiErrorSnackbar} from '../components/ui/ApiErrorSnackbar'
 
 import heromark from '../assets/rakez_heromark.svg'
-import logo from '../assets/rakez.svg'
 import wordmark from '../assets/wordmark.svg'
 
 const loginSchema = z.object({
@@ -38,16 +32,11 @@ export function LoginPage() {
         resolver: zodResolver(loginSchema),
     })
 
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
     const loginMutation = useMutation({
         mutationFn: async (values: LoginFormValues) => login(values.username, values.password),
         onSuccess: () => {
             setSuccessMessage('Logged in.')
             navigate('/dashboard', {replace: true})
-        },
-        onError: (error) => {
-            setErrorMessage(error.message)
         },
     })
 
@@ -112,14 +101,6 @@ export function LoginPage() {
                             )}
                         />
 
-                        {loginMutation.error ? (
-                            <ApiErrorSnackbar
-                                open={Boolean(errorMessage)}
-                                message={errorMessage}
-                                onClose={() => setErrorMessage(null)}
-                            />
-                        ) : null}
-
                         {successMessage ? <Alert severity="success">{successMessage}</Alert> : null}
 
                         <Button
@@ -131,6 +112,10 @@ export function LoginPage() {
                         </Button>
                     </Box>
                 </Panel>
+                <ApiErrorSnackbar
+                    error={loginMutation.error}
+                    onClose={() => loginMutation.reset()}
+                />
             </Box>
         </AppShell>
     )
