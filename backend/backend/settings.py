@@ -9,22 +9,36 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wp=tz@sex2c63_i$10s)3yqw$3e6%k0ul%vbg^wr_#z$&k^2&@'
+def env_list(name: str, default=None):
+    value = os.getenv(name, "")
+    if not value:
+        return default or []
+    return [item.strip() for item in value.split(",") if item.strip()]
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() == "true"
+
+
+SECRET_KEY = env_bool("DJANGO_SECRET_KEY")
+DEBUG = env_bool("DJANGO_DEBUG", False)
+SECURE_COOKIES = env_bool("DJANGO_SECURE_COOKIES", True)
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+PUBLIC_EVENT_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 178  # Half a year
 
 # Application definition
 
@@ -43,6 +57,7 @@ INSTALLED_APPS = [
     'staffing',
     'scheduling',
     'accounts',
+    'availability'
 ]
 
 MIDDLEWARE = [
@@ -83,10 +98,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
-
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases

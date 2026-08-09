@@ -1,3 +1,4 @@
+import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.core.exceptions import ValidationError
@@ -7,6 +8,13 @@ from django.conf import settings
 
 # Create your models here.
 class Event(models.Model):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        db_index=True,
+    )
+    pin_hash = models.CharField(max_length=255, blank=True)
     name = models.CharField(max_length=255)
     start = models.DateTimeField()
     end = models.DateTimeField()

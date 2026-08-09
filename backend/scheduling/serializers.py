@@ -4,7 +4,9 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 from .models import Shift, ShiftPosition, ShiftAssignment, Event
 
@@ -59,11 +61,13 @@ class ShiftAssignmentSerializer(FullCleanModelSerializer):
                 staff=validated_data["staff"]
             )
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_qualified(self, obj):
         return obj.staff.positions.filter(
             pk=obj.shift_position.position_id
         ).exists()
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_warnings(self, obj):
         overlapping_assignments = obj.get_overlapping_different_service_assignments()
 
@@ -80,9 +84,23 @@ class ShiftAssignmentSerializer(FullCleanModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    pin = serializers.CharField(write_only=True, required=True, min_length=6, max_length=6)
+
     class Meta:
         model = Event
-        fields = "__all__"
+        exclude = ["pin_hash"]
+
+    def create(self, validated_data):
+        pin = validated_data.pop("pin")
+        validated_data["pin_hash"] = make_password(pin)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # optional: allow pin rotation on update if provided
+        pin = validated_data.pop("pin", None)
+        if pin:
+            validated_data["pin_hash"] = make_password(pin)
+        return super().update(instance, validated_data)
 
     def validate(self, attrs):
         start = attrs.get("start", getattr(self.instance, "start", None))

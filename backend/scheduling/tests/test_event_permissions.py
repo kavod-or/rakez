@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -48,6 +49,7 @@ class EventPermissionTests(APITestCase):
             end=timezone.now() + timedelta(days=1, hours=2),
             timezone="Europe/Berlin",
             description="First event",
+            pin_hash=make_password("000000"),
         )
         self.event_2 = Event.objects.create(
             name="Event 2",
@@ -55,6 +57,7 @@ class EventPermissionTests(APITestCase):
             end=timezone.now() + timedelta(days=2, hours=2),
             timezone="Europe/Berlin",
             description="Second event",
+            pin_hash=make_password("000000"),
         )
 
         EventRole.objects.create(
@@ -153,6 +156,7 @@ class EventPermissionTests(APITestCase):
                 "end": (timezone.now() + timedelta(days=3, hours=2)).isoformat(),
                 "timezone": "Europe/Berlin",
                 "description": "Created by global manager",
+                "pin": "000000"
             },
             format="json",
         )
