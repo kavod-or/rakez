@@ -9,12 +9,16 @@ import {
     Box,
     Button,
     TextField,
-    Typography,
 } from '@mui/material'
 
 import {login} from '../api/client'
 import {AppShell} from '../components/layout/AppShell'
 import {Panel} from '../components/layout/Panel'
+import {ApiErrorSnackbar} from "../components/ui/ApiErrorSnackbar.tsx";
+
+import heromark from '../assets/rakez_heromark.svg'
+import logo from '../assets/rakez.svg'
+import wordmark from '../assets/wordmark.svg'
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -34,11 +38,16 @@ export function LoginPage() {
         resolver: zodResolver(loginSchema),
     })
 
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
     const loginMutation = useMutation({
         mutationFn: async (values: LoginFormValues) => login(values.username, values.password),
         onSuccess: () => {
             setSuccessMessage('Logged in.')
             navigate('/dashboard', {replace: true})
+        },
+        onError: (error) => {
+            setErrorMessage(error.message)
         },
     })
 
@@ -49,13 +58,24 @@ export function LoginPage() {
                     minHeight: '80svh',
                     display: 'grid',
                     placeItems: 'center',
+                    rowGap: 1,
                 }}
             >
                 <Panel>
-                    <Typography variant="h4" component="h1" gutterBottom>
-                        Login
-                    </Typography>
-
+                    <Box sx={{display: 'grid', placeItems: 'center', width: 300}}>
+                        <Box
+                            component="img"
+                            src={wordmark}
+                            alt="Coordinate with purpose"
+                            sx={{width: 200, height: 'auto', display: 'block'}}
+                        />
+                        <Box
+                            component="img"
+                            src={heromark}
+                            alt="Coordinate with purpose"
+                            sx={{width: 150, height: 'auto', display: 'block'}}
+                        />
+                    </Box>
                     <Box
                         component="form"
                         onSubmit={handleSubmit((values) => loginMutation.mutate(values))}
@@ -93,7 +113,11 @@ export function LoginPage() {
                         />
 
                         {loginMutation.error ? (
-                            <Alert severity="error">{loginMutation.error.message}</Alert>
+                            <ApiErrorSnackbar
+                                open={Boolean(errorMessage)}
+                                message={errorMessage}
+                                onClose={() => setErrorMessage(null)}
+                            />
                         ) : null}
 
                         {successMessage ? <Alert severity="success">{successMessage}</Alert> : null}
