@@ -2,18 +2,20 @@ import rakezIcon from '../../assets/rakez_icon.svg'
 import EventIcon from '@mui/icons-material/Event'
 import PeopleIcon from '@mui/icons-material/People'
 import type {ReactNode} from 'react'
-import {Box} from "@mui/material";
+import {Box} from '@mui/material'
 
 export type MenuDefinition = {
     id: string
     label: string
     icon: ReactNode
+    to: string
 }
 
 export const MENU_ITEMS: MenuDefinition[] = [
     {
         id: 'planner',
         label: 'Planner',
+        to: '/dashboard',
         icon: (
             <Box
                 component="img"
@@ -29,6 +31,6 @@ export const MENU_ITEMS: MenuDefinition[] = [
             />
         )
     },
-    {id: 'events', label: 'Events', icon: <EventIcon/>},
-    {id: 'staff', label: 'Staff', icon: <PeopleIcon/>},
+    {id: 'events', label: 'Events', to: '/events', icon: <EventIcon/>},
+    {id: 'staff', label: 'Staff', to: '/staff', icon: <PeopleIcon/>},
 ]

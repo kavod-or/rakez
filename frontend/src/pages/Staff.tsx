@@ -4,14 +4,14 @@ import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
 import {Panel} from "../components/layout/Panel.tsx";
 
-export function DashboardPage() {
+export function StaffPage() {
     return (
         <AppShell maxWidth={false}>
             <Box sx={{minHeight: '80svh', display: 'flex'}}>
                 <Menu/>
                 <Box sx={{placeContent: 'start'}}>
                     <Panel>
-                        Dashboard
+                        Staff
                     </Panel>
                 </Box>
             </Box>

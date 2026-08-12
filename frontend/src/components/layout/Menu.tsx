@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {styled, useTheme} from '@mui/material/styles'
 import type {Theme, CSSObject} from '@mui/material/styles'
+import Box from '@mui/material/Box'
 import MuiDrawer from '@mui/material/Drawer'
 import List from '@mui/material/List'
 import Divider from '@mui/material/Divider'
@@ -8,6 +9,7 @@ import IconButton from '@mui/material/IconButton'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './menuItems'
 
@@ -65,23 +67,43 @@ export function Menu() {
 
     return (
         <Drawer variant="permanent" open={open}>
-            <DrawerHeader>
-                <IconButton onClick={() => setOpen((prev) => !prev)}>
-                    {open
-                        ? theme.direction === 'rtl'
-                            ? <ChevronRightIcon/>
-                            : <ChevronLeftIcon/>
-                        : <MenuIcon/>}
-                </IconButton>
-            </DrawerHeader>
+            <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                <DrawerHeader>
+                    <IconButton onClick={() => setOpen((prev) => !prev)}>
+                        {open
+                            ? theme.direction === 'rtl'
+                                ? <ChevronRightIcon/>
+                                : <ChevronLeftIcon/>
+                            : <MenuIcon/>}
+                    </IconButton>
+                </DrawerHeader>
 
-            <Divider/>
+                <Divider/>
 
-            <List>
-                {MENU_ITEMS.map((item) => (
-                    <MenuItem key={item.id} open={open} label={item.label} icon={item.icon} />
-                ))}
-            </List>
+                <List>
+                    {MENU_ITEMS.map((item) => (
+                        <MenuItem
+                            key={item.id}
+                            open={open}
+                            label={item.label}
+                            icon={item.icon}
+                            to={item.to}
+                        />
+                    ))}
+                </List>
+
+                <Box sx={{mt: 'auto'}}>
+                    <Divider/>
+                    <List>
+                        <MenuItem
+                            open={open}
+                            label="Account"
+                            icon={<AccountCircleIcon/>}
+                            to="/account"
+                        />
+                    </List>
+                </Box>
+            </Box>
         </Drawer>
     )
 }
