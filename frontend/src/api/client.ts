@@ -1,4 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+
+function apiUrl(path: string): string {
+  return `${API_BASE_URL}${path}`
+}
 
 export type CurrentUser = {
   id: number
@@ -33,7 +37,7 @@ async function readErrorMessage(response: Response): Promise<string> {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     credentials: 'include',
     headers: {
@@ -55,7 +59,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/me/`, {
+  const response = await fetch(apiUrl('/api/v1/auth/me/'), {
     credentials: 'include',
     headers: {
       Accept: 'application/json',
@@ -74,7 +78,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 export async function ensureCsrfCookie(): Promise<void> {
-  await fetch(`${API_BASE_URL}/api/v1/auth/csrf/`, {
+  await fetch(apiUrl('/api/v1/auth/csrf/'), {
     credentials: 'include',
   })
 }

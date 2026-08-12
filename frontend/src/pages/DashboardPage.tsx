@@ -1,21 +1,15 @@
-import { Box, Typography } from '@mui/material'
+import {Box} from '@mui/material'
 
-import { AppShell } from '../components/layout/AppShell'
-import { Panel } from '../components/layout/Panel'
+import {AppShell} from '../components/layout/AppShell'
+import {Menu} from '../components/layout/Menu'
+import {FooterBar} from '../components/layout/FooterBar'
 
 export function DashboardPage() {
-  return (
-    <AppShell>
-      <Box sx={{ minHeight: '80svh', display: 'grid', placeItems: 'center' }}>
-        <Panel>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Dashboard
-          </Typography>
-          <Typography variant="body1">
-            You are logged in. Next step: build the events overview.
-          </Typography>
-        </Panel>
-      </Box>
-    </AppShell>
-  )
+    return (
+        <AppShell maxWidth={false} disableGutters>
+            <Box sx={{minHeight: '80svh', display: 'flex'}}>
+                <Menu/>
+            </Box>
+        </AppShell>
+    )
 }

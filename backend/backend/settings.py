@@ -30,10 +30,11 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() == "true"
 
 
-SECRET_KEY = env_bool("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 SECURE_COOKIES = env_bool("DJANGO_SECURE_COOKIES", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 days
 SESSION_SAVE_EVERY_REQUEST = True

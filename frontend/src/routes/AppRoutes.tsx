@@ -1,15 +1,18 @@
-import { Route, Routes } from 'react-router-dom'
-
-import { DashboardPage } from '../pages/DashboardPage'
-import { LandingPage } from '../pages/LandingPage'
-import { LoginPage } from '../pages/LoginPage'
+// frontend/src/routes/AppRoutes.tsx
+import {Route, Routes, Navigate} from 'react-router-dom'
+import {DashboardPage} from '../pages/DashboardPage'
+import {LoginPage} from '../pages/LoginPage'
+import {ProtectedRoute} from './ProtectedRoute'
 
 export function AppRoutes() {
-  return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-    </Routes>
-  )
+    return (
+        <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace/>}/>
+            <Route path="/login" element={<LoginPage/>}/>
+
+            <Route element={<ProtectedRoute/>}>
+                <Route path="/dashboard" element={<DashboardPage/>}/>
+            </Route>
+        </Routes>
+    )
 }

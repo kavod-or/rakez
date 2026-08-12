@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from .models import GlobalRole, EventRole, ServiceRole
 from .serializers import LoginRequestSerializer, LoginResponseSerializer, LogoutResponseSerializer, \
     LogoutRequestSerializer
 
@@ -71,6 +72,11 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def me_view(request):
     user = request.user
+    global_roles = GlobalRole.objects.filter(user=user).values_list("role", flat=True)
+    event_roles = EventRole.objects.filter(user=user).values_list("role", flat=True)
+    service_roles = ServiceRole.objects.filter(user=user).values_list("role", flat=True)
+
+    roles = sorted(set([*global_roles, *event_roles, *service_roles]))
 
     return Response(
         {
@@ -79,6 +85,6 @@ def me_view(request):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "email": user.email,
-            "roles": [str(role) for role in user.roles.all()],
+            "roles": roles,
         }
     )

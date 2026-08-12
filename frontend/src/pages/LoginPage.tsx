@@ -1,18 +1,19 @@
-import {useState} from 'react'
 import {z} from 'zod'
 import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
-import {useMutation} from '@tanstack/react-query'
-import {useNavigate} from 'react-router-dom'
-import {Alert, Box, Button, TextField} from '@mui/material'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Navigate, useLocation, useNavigate} from 'react-router-dom'
+import {Box, Button, Link, TextField} from '@mui/material'
 
-import {login} from '../api/client'
+import {getCurrentUser, login} from '../api/client'
 import {AppShell} from '../components/layout/AppShell'
 import {Panel} from '../components/layout/Panel'
 import {ApiErrorSnackbar} from '../components/ui/ApiErrorSnackbar'
 
 import heromark from '../assets/rakez_heromark.svg'
 import wordmark from '../assets/wordmark.svg'
+import logo from '../assets/rakez.svg'
+import GitHubIcon from "@mui/icons-material/GitHub";
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Username is required'),
@@ -20,10 +21,18 @@ const loginSchema = z.object({
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
+type RedirectLocationState = {
+    from?: {
+        pathname: string
+        search?: string
+        hash?: string
+    }
+}
 
 export function LoginPage() {
     const navigate = useNavigate()
-    const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const location = useLocation()
+    const queryClient = useQueryClient()
     const {
         control,
         handleSubmit,
@@ -32,13 +41,32 @@ export function LoginPage() {
         resolver: zodResolver(loginSchema),
     })
 
+    const from = (location.state as RedirectLocationState | undefined)?.from
+    const redirectTo =
+        from && from.pathname !== '/login'
+            ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+            : '/dashboard'
+
     const loginMutation = useMutation({
         mutationFn: async (values: LoginFormValues) => login(values.username, values.password),
-        onSuccess: () => {
-            setSuccessMessage('Logged in.')
-            navigate('/dashboard', {replace: true})
+        onSuccess: async () => {
+            await queryClient.fetchQuery({
+                queryKey: ['current-user'],
+                queryFn: getCurrentUser,
+                retry: false,
+            })
+            navigate(redirectTo, {replace: true})
         },
     })
+
+    const {data: user, isPending} = useQuery({
+        queryKey: ['current-user'],
+        queryFn: getCurrentUser,
+        retry: false,
+    })
+
+    if (isPending) return null
+    if (user) return <Navigate to={redirectTo} replace/>
 
     return (
         <AppShell>
@@ -51,20 +79,30 @@ export function LoginPage() {
                 }}
             >
                 <Panel>
-                    <Box sx={{display: 'grid', placeItems: 'center', width: 300}}>
+                    <Box sx={{display: 'flex', alignItems: 'center'}}>
                         <Box
                             component="img"
-                            src={wordmark}
-                            alt="Coordinate with purpose"
-                            sx={{width: 200, height: 'auto', display: 'block'}}
+                            src={logo}
+                            alt="Rakez logo"
+                            sx={{width: 70, height: 'auto', display: 'block', flexShrink: 0}}
                         />
-                        <Box
-                            component="img"
-                            src={heromark}
-                            alt="Coordinate with purpose"
-                            sx={{width: 150, height: 'auto', display: 'block'}}
-                        />
+
+                        <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 0}}>
+                            <Box
+                                component="img"
+                                src={wordmark}
+                                alt="Rakez"
+                                sx={{width: 200, height: 'auto', display: 'block'}}
+                            />
+                            <Box
+                                component="img"
+                                src={heromark}
+                                alt="Coordinate with purpose"
+                                sx={{width: 150, height: 'auto', display: 'block', mt: -1}}
+                            />
+                        </Box>
                     </Box>
+
                     <Box
                         component="form"
                         onSubmit={handleSubmit((values) => loginMutation.mutate(values))}
@@ -101,8 +139,6 @@ export function LoginPage() {
                             )}
                         />
 
-                        {successMessage ? <Alert severity="success">{successMessage}</Alert> : null}
-
                         <Button
                             type="submit"
                             variant="contained"
@@ -116,6 +152,33 @@ export function LoginPage() {
                     error={loginMutation.error}
                     onClose={() => loginMutation.reset()}
                 />
+            </Box>
+            <Box
+                component="footer"
+                sx={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '100%',
+                    display: {xxs: 'none', xs: 'flex', sm: 'flex'},
+                    justifyContent: 'center',
+                    py: 1.5,
+                    px: 2,
+                    opacity: '40%'
+                }}
+            >
+                <Link
+                    href="https://github.com/kavod-or/rakez"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    underline="hover"
+                    color="text.secondary"
+                    sx={{display: 'inline-flex', alignItems: 'center', gap: 0.75}}
+                >
+                    <GitHubIcon fontSize="small"/>
+                    GitHub
+                </Link>
             </Box>
         </AppShell>
     )
