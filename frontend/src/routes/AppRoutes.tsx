@@ -6,6 +6,7 @@ import {ProtectedRoute} from './ProtectedRoute'
 import {EventsPage} from "../pages/Events.tsx";
 import {StaffPage} from "../pages/Staff.tsx";
 import {AccountPage} from "../pages/Account.tsx";
+import {NotFoundPage} from "../pages/NotFound.tsx";
 
 export function AppRoutes() {
     return (
@@ -18,6 +19,8 @@ export function AppRoutes() {
                 <Route path="/events" element={<EventsPage/>}/>
                 <Route path="/staff" element={<StaffPage/>}/>
                 <Route path="/account" element={<AccountPage/>}/>
+                
+                <Route path="*" element={<NotFoundPage/>}/>
             </Route>
         </Routes>
     )

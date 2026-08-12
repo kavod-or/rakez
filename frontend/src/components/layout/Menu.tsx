@@ -14,6 +14,7 @@ import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './menuItems'
 
 const drawerWidth = 240
+const menuOpenStorageKey = 'menu-open'
 
 const openedMenu = (theme: Theme): CSSObject => ({
     width: drawerWidth,
@@ -63,7 +64,17 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
 
 export function Menu() {
     const theme = useTheme()
-    const [open, setOpen] = React.useState(false)
+    const [open, setOpen] = React.useState(() => {
+        if (typeof window === 'undefined') {
+            return false
+        }
+
+        return window.localStorage.getItem(menuOpenStorageKey) === '1'
+    })
+
+    React.useEffect(() => {
+        window.localStorage.setItem(menuOpenStorageKey, open ? '1' : '0')
+    }, [open])
 
     return (
         <Drawer variant="permanent" open={open}>
@@ -88,6 +99,7 @@ export function Menu() {
                             label={item.label}
                             icon={item.icon}
                             to={item.to}
+                            tooltip={item.tooltip}
                         />
                     ))}
                 </List>
@@ -100,6 +112,7 @@ export function Menu() {
                             label="Account"
                             icon={<AccountCircleIcon/>}
                             to="/account"
+                            tooltip="Account"
                         />
                     </List>
                 </Box>

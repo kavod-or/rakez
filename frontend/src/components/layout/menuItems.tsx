@@ -8,7 +8,8 @@ export type MenuDefinition = {
     id: string
     label: string
     icon: ReactNode
-    to: string
+    to: string,
+    tooltip: string
 }
 
 export const MENU_ITEMS: MenuDefinition[] = [
@@ -29,8 +30,9 @@ export const MENU_ITEMS: MenuDefinition[] = [
                     objectFit: 'contain',
                 }}
             />
-        )
+        ),
+        tooltip: 'Planner'
     },
-    {id: 'events', label: 'Events', to: '/events', icon: <EventIcon/>},
-    {id: 'staff', label: 'Staff', to: '/staff', icon: <PeopleIcon/>},
+    {id: 'events', label: 'Events', to: '/events', icon: <EventIcon/>, tooltip: 'Events'},
+    {id: 'staff', label: 'Staff', to: '/staff', icon: <PeopleIcon/>, tooltip: 'Staff'},
 ]
