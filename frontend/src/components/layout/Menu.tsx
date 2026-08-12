@@ -12,6 +12,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './menuItems'
+import {glassSurfaceStyles} from '../ui/GlassBox'
 
 const drawerWidth = 240
 const menuOpenStorageKey = 'menu-open'
@@ -54,11 +55,17 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
     boxSizing: 'border-box',
     ...(open && {
         ...openedMenu(theme),
-        '& .MuiDrawer-paper': openedMenu(theme),
+        '& .MuiDrawer-paper': {
+            ...openedMenu(theme),
+            ...glassSurfaceStyles,
+        },
     }),
     ...(!open && {
         ...closedMenu(theme),
-        '& .MuiDrawer-paper': closedMenu(theme),
+        '& .MuiDrawer-paper': {
+            ...closedMenu(theme),
+            ...glassSurfaceStyles,
+        },
     }),
 }))
 
@@ -85,11 +92,11 @@ export function Menu() {
                             ? theme.direction === 'rtl'
                                 ? <ChevronRightIcon/>
                                 : <ChevronLeftIcon/>
-                            : <MenuIcon/>}
+                            : <ChevronRightIcon/>}
                     </IconButton>
                 </DrawerHeader>
 
-                <Divider/>
+                <Divider sx={{borderColor: 'rgba(148, 163, 184, 0.22)'}}/>
 
                 <List>
                     {MENU_ITEMS.map((item) => (
@@ -105,7 +112,7 @@ export function Menu() {
                 </List>
 
                 <Box sx={{mt: 'auto'}}>
-                    <Divider/>
+                    <Divider sx={{borderColor: 'rgba(148, 163, 184, 0.22)'}}/>
                     <List>
                         <MenuItem
                             open={open}

@@ -27,7 +27,6 @@ export function MenuItem({open, label, icon, to, tooltip}: MenuItemProps) {
                     justifyContent: open ? 'initial' : 'center',
                     '&:hover': {
                         backgroundColor: open ? 'action.hover' : 'transparent',
-                        scale: 1.1
                     },
                 }}
             >
@@ -54,7 +53,7 @@ export function MenuItem({open, label, icon, to, tooltip}: MenuItemProps) {
                         slotProps={{
                             transition: {timeout: 600},
                         }}
-                        enterDelay={1000}
+                        enterDelay={2000}
 
                     >
                         <span>{icon}</span>
