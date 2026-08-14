@@ -1,4 +1,3 @@
-import {Box, Typography} from '@mui/material'
 
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'

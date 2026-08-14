@@ -6,7 +6,6 @@ import MuiDrawer from '@mui/material/Drawer'
 import List from '@mui/material/List'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
-import Typography from '@mui/material/Typography'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
@@ -59,8 +58,8 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
         '& .MuiDrawer-paper': {
             ...openedMenu(theme),
             ...glassSurfaceStyles,
-            borderTopRightRadius: theme.shape.borderRadius * 2,
-            borderBottomRightRadius: theme.shape.borderRadius * 2,
+        borderTopRightRadius: `${Number(theme.shape.borderRadius) * 2}px`,
+        borderBottomRightRadius: `${Number(theme.shape.borderRadius) * 2}px`,
         },
     }),
     ...(!open && {
@@ -68,8 +67,8 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
         '& .MuiDrawer-paper': {
             ...closedMenu(theme),
             ...glassSurfaceStyles,
-            borderTopRightRadius: theme.shape.borderRadius * 2,
-            borderBottomRightRadius: theme.shape.borderRadius * 2,
+        borderTopRightRadius: `${Number(theme.shape.borderRadius) * 2}px`,
+        borderBottomRightRadius: `${Number(theme.shape.borderRadius) * 2}px`,
         },
     }),
 }))

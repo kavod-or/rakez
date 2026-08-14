@@ -1,12 +1,14 @@
 import type {ReactNode} from 'react'
 import {Paper, Stack, Box, Typography} from '@mui/material'
+import type {SxProps} from '@mui/material'
+import type {Theme} from '@mui/material/styles'
 import {glassSurfaceStyles} from '../ui/GlassBox'
 
 type PanelProps = {
-    children: ReactNode,
-    sx?: any,
+    children?: ReactNode,
+    sx?: SxProps<Theme>,
     title?: ReactNode,
-    titleSx?: any,
+    titleSx?: SxProps<Theme>,
 }
 
 export function Panel({children, sx, title, titleSx}: PanelProps) {
