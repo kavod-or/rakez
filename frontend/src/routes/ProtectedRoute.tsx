@@ -10,6 +10,9 @@ export function ProtectedRoute() {
         queryKey: ['current-user'],
         queryFn: getCurrentUser,
         retry: false,
+        // avoid aggressive refetching; keep a short cache for interactive apps
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        refetchOnWindowFocus: false,
     })
 
     if (isPending || isFetching) {

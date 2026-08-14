@@ -5,10 +5,12 @@ import type {SxProps} from '@mui/material'
 import type {Theme} from '@mui/material/styles'
 import {drawerWidth} from './Menu'
 
+type Padding = number | { xs?: number; sm?: number }
+
 type ContentAreaProps = {
   children: ReactNode
   sx?: SxProps<Theme>
-  padding?: any
+  padding?: Padding
 }
 
 export function ContentArea({children, sx, padding = {xs: 1, sm: 2}}: ContentAreaProps) {
@@ -32,12 +34,12 @@ export function ContentArea({children, sx, padding = {xs: 1, sm: 2}}: ContentAre
     'body.menu-open &': {
       left: `${drawerWidth}px`,
     },
-    p: padding as any,
+    p: padding,
     overflow: 'auto',
     boxSizing: 'border-box',
   } as const
 
-  const merged = typeof sx === 'function' ? {...base, ...(sx as any)(theme)} : {...base, ...(sx ?? {})}
+  const merged = [base, sx] as SxProps<Theme>
 
   return <Box sx={merged}>{children}</Box>
 }

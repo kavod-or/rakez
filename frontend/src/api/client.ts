@@ -4,13 +4,18 @@ function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 
+export type RoleEntry =
+  | { role: string; label: string; scope: 'global' }
+  | { role: string; label: string; scope: 'event'; target: { id: string; name: string } }
+  | { role: string; label: string; scope: 'service'; target: { id: number; name: string } }
+
 export type CurrentUser = {
   id: number
   username: string
   first_name: string
   last_name: string
   email: string
-  roles: string[]
+  roles: RoleEntry[]
 }
 
 export type LoginResponse = {

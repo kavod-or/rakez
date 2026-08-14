@@ -72,11 +72,40 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def me_view(request):
     user = request.user
-    global_roles = GlobalRole.objects.filter(user=user).values_list("role", flat=True)
-    event_roles = EventRole.objects.filter(user=user).values_list("role", flat=True)
-    service_roles = ServiceRole.objects.filter(user=user).values_list("role", flat=True)
 
-    roles = sorted(set([*global_roles, *event_roles, *service_roles]))
+    # collect global roles
+    global_qs = GlobalRole.objects.filter(user=user).values_list("role", flat=True)
+
+    # collect event roles with related event info
+    event_qs = EventRole.objects.filter(user=user).select_related("event")
+
+    # collect service roles with related service info
+    service_qs = ServiceRole.objects.filter(user=user).select_related("service")
+
+    roles = []
+
+    for gr in GlobalRole.objects.filter(user=user):
+        roles.append({
+            "role": gr.role,
+            "label": gr.get_role_display(),
+            "scope": "global",
+        })
+
+    for er in event_qs:
+        roles.append({
+            "role": er.role,
+            "label": er.get_role_display(),
+            "scope": "event",
+            "target": {"id": str(er.event.public_id), "name": er.event.name},
+        })
+
+    for sr in service_qs:
+        roles.append({
+            "role": sr.role,
+            "label": sr.get_role_display(),
+            "scope": "service",
+            "target": {"id": sr.service.id, "name": sr.service.name},
+        })
 
     return Response(
         {
