@@ -77,10 +77,13 @@ export function Menu() {
     const theme = useTheme()
     const [open, setOpen] = React.useState(() => {
         if (typeof window === 'undefined') {
-            return false
+            return true
         }
 
-        return window.localStorage.getItem(menuOpenStorageKey) === '1'
+        // default to open (1) if no preference stored
+        const stored = window.localStorage.getItem(menuOpenStorageKey)
+        if (stored === null) return true
+        return stored === '1'
     })
 
     React.useEffect(() => {
