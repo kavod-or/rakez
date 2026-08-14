@@ -8,7 +8,7 @@ export function NotFoundPage() {
     return (
         <AppShell>
             <Box sx={{minHeight: '80svh', display: 'grid', placeItems: 'center'}}>
-                <Panel>
+                <Panel title="">
                     <Box sx={{display: 'grid', gap: 1.5, justifyItems: 'center', textAlign: 'center'}}>
                         <Typography variant="h3" component="h1">
                             404

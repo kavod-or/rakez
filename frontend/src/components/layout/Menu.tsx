@@ -6,15 +6,16 @@ import MuiDrawer from '@mui/material/Drawer'
 import List from '@mui/material/List'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
-import MenuIcon from '@mui/icons-material/Menu'
+import Typography from '@mui/material/Typography'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './menuItems'
+import wordmark from '../../assets/wordmark.svg'
 import {glassSurfaceStyles} from '../ui/GlassBox'
 
-const drawerWidth = 240
+export const drawerWidth = 240
 const menuOpenStorageKey = 'menu-open'
 
 const openedMenu = (theme: Theme): CSSObject => ({
@@ -58,6 +59,8 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
         '& .MuiDrawer-paper': {
             ...openedMenu(theme),
             ...glassSurfaceStyles,
+            borderTopRightRadius: theme.shape.borderRadius * 2,
+            borderBottomRightRadius: theme.shape.borderRadius * 2,
         },
     }),
     ...(!open && {
@@ -65,6 +68,8 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
         '& .MuiDrawer-paper': {
             ...closedMenu(theme),
             ...glassSurfaceStyles,
+            borderTopRightRadius: theme.shape.borderRadius * 2,
+            borderBottomRightRadius: theme.shape.borderRadius * 2,
         },
     }),
 }))
@@ -83,17 +88,61 @@ export function Menu() {
         window.localStorage.setItem(menuOpenStorageKey, open ? '1' : '0')
     }, [open])
 
+    // Keep a body class in sync so other parts of the UI (ContentArea) can react when the menu is open
+    React.useEffect(() => {
+        if (typeof document === 'undefined') return
+        if (open) {
+            document.body.classList.add('menu-open')
+        } else {
+            document.body.classList.remove('menu-open')
+        }
+        // cleanup not strictly necessary but keep it safe
+        return () => {
+            document.body.classList.remove('menu-open')
+        }
+    }, [open])
+
     return (
         <Drawer variant="permanent" open={open}>
             <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                 <DrawerHeader>
-                    <IconButton onClick={() => setOpen((prev) => !prev)}>
-                        {open
-                            ? theme.direction === 'rtl'
-                                ? <ChevronRightIcon/>
-                                : <ChevronLeftIcon/>
-                            : <ChevronRightIcon/>}
-                    </IconButton>
+                    <Box sx={{width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end'}}>
+
+                        {/* centered wordmark */}
+                        <Box sx={(theme) => ({
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            pointerEvents: 'none',
+                            // animate maxWidth instead of width for smoother transitions from 0 to value
+                            maxWidth: open ? 220 : 0,
+                            opacity: open ? 1 : 0,
+                            transform: open ? 'none' : 'translateY(-6px)',
+                            transition: theme.transitions.create(['max-width', 'opacity', 'transform'], {
+                                easing: theme.transitions.easing.sharp,
+                                duration: theme.transitions.duration.enteringScreen,
+                            }),
+                        })}>
+                            <Box
+                                component="img"
+                                src={wordmark}
+                                alt="Rakez"
+                                sx={{height: 32, display: 'block'}}
+                            />
+                        </Box>
+
+                        {/* toggle button on the right */}
+                        <IconButton onClick={() => setOpen((prev) => !prev)} sx={{zIndex: 1}}>
+                            {open
+                                ? theme.direction === 'rtl'
+                                    ? <ChevronRightIcon/>
+                                    : <ChevronLeftIcon/>
+                                : <ChevronRightIcon/>}
+                        </IconButton>
+                    </Box>
                 </DrawerHeader>
 
                 <Divider sx={{borderColor: 'rgba(148, 163, 184, 0.22)'}}/>

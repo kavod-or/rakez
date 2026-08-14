@@ -2,27 +2,18 @@ import {Box, Typography} from '@mui/material'
 
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
-import {Panel} from "../components/layout/Panel.tsx";
+import {Panel} from '../components/layout/Panel'
+import {ContentArea} from '../components/layout/ContentArea'
 
 export function StaffPage() {
     return (
         <AppShell maxWidth={false}>
             <Menu/>
-            <Box sx={{minHeight: '80svh', display: 'grid', placeItems: 'center'}}>
-                <Panel>
-                    <Box sx={{display: 'grid', gap: 1.5, justifyItems: 'center', textAlign: 'center'}}>
-                        <Typography variant="h3" component="h1">
-                            Staff
-                        </Typography>
-                        <Typography variant="h6">
-                            Staff will join soon
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            Yeah, really they do are already piling up
-                        </Typography>
-                    </Box>
+            <ContentArea>
+                <Panel title="Staff" sx={{height: '100%'}}>
+
                 </Panel>
-            </Box>
+            </ContentArea>
         </AppShell>
     )
 }

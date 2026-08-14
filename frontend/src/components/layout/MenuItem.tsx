@@ -60,6 +60,7 @@ export function MenuItem({open, label, icon, to, tooltip}: MenuItemProps) {
                     </Tooltip>
                 </ListItemIcon>
                 <ListItemText primary={label} sx={{opacity: open ? 1 : 0}}/>
+
             </ListItemButton>
         </ListItem>
     )
