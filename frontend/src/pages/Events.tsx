@@ -1,6 +1,7 @@
-
+import React, {useEffect, useState} from 'react'
 import {useQuery} from '@tanstack/react-query'
-import {Box, Card, CardContent, Chip, CircularProgress, Stack, Typography} from '@mui/material'
+import {Box, CircularProgress, Typography} from '@mui/material'
+import EventCard from '../components/EventCard'
 
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
@@ -23,6 +24,22 @@ export function EventsPage() {
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
     })
+
+    const [activeEventId, setActiveEventId] = useState<string | null>(null)
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('active-event')
+            if (stored) setActiveEventId(stored)
+        } catch (e) {
+            // ignore localStorage access errors (e.g., SSR or blocked storage)
+        }
+    }, [])
+
+    const setActive = (id: string) => {
+        setActiveEventId(id)
+        try { localStorage.setItem('active-event', id) } catch {}
+    }
 
     return (
         <AppShell maxWidth={false}>
@@ -52,39 +69,19 @@ export function EventsPage() {
                                 },
                                 gap: 2,
                             }}>
-                                {events.map((event) => (
-                                    <Card key={event.public_id || event.id} sx={{height: '100%'}}>
-                                        <CardContent sx={{display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5}}>
-                                            <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1}}>
-                                                <Typography variant="h6" sx={{fontWeight: 600}}>{event.name}</Typography>
-                                                <Chip label={event.timezone} size="small" variant="outlined" />
-                                            </Box>
+                                {events.map((event) => {
+                                    const id = event.public_id || event.id
+                                    const isActive = activeEventId === id
 
-                                            <Stack spacing={0.5}>
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">Starts</Typography>
-                                                    <Typography variant="body2">{formatDateTime(event.start)}</Typography>
-                                                </Box>
-                                                <Box>
-                                                    <Typography variant="caption" color="text.secondary">Ends</Typography>
-                                                    <Typography variant="body2">{formatDateTime(event.end)}</Typography>
-                                                </Box>
-                                            </Stack>
-
-                                            {event.description && (
-                                                <Typography variant="body2" color="text.secondary" sx={{
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 3,
-                                                    WebkitBoxOrient: 'vertical',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                }}>
-                                                    {event.description}
-                                                </Typography>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                    return (
+                                        <EventCard
+                                            key={id}
+                                            event={event}
+                                            isActive={isActive}
+                                            onActivate={setActive}
+                                        />
+                                    )
+                                })}
                             </Box>
                         )
                     )}
