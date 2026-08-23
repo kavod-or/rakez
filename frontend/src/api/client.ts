@@ -108,3 +108,15 @@ export async function login(username: string, password: string): Promise<LoginRe
     body: JSON.stringify({ username, password }),
   })
 }
+
+export async function logout(): Promise<{ detail: string }> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+
+  return apiFetch<{ detail: string }>('/api/v1/auth/logout/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+  })
+}

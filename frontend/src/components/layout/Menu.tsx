@@ -9,10 +9,14 @@ import IconButton from '@mui/material/IconButton'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
+import LogoutIcon from '@mui/icons-material/Logout'
+import {useNavigate} from 'react-router-dom'
+import {useQueryClient} from '@tanstack/react-query'
 import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './menuItems'
 import wordmark from '../../assets/wordmark.svg'
 import {glassSurfaceStyles} from '../ui/GlassBox'
+import {logout} from '../../api/client'
 
 export const drawerWidth = 240
 const menuOpenStorageKey = 'menu-open'
@@ -75,22 +79,31 @@ const Drawer = styled(MuiDrawer, {shouldForwardProp: (prop) => prop !== 'open'})
 
 export function Menu() {
     const theme = useTheme()
+    const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const [open, setOpen] = React.useState(() => {
         if (typeof window === 'undefined') {
             return true
         }
 
-        // default to open (1) if no preference stored
         const stored = window.localStorage.getItem(menuOpenStorageKey)
         if (stored === null) return true
         return stored === '1'
     })
 
+    const handleLogout = React.useCallback(async () => {
+        try {
+            await logout()
+        } finally {
+            queryClient.clear()
+            navigate('/login', {replace: true})
+        }
+    }, [navigate, queryClient])
+
     React.useEffect(() => {
         window.localStorage.setItem(menuOpenStorageKey, open ? '1' : '0')
     }, [open])
 
-    // Keep a body class in sync so other parts of the UI (ContentArea) can react when the menu is open
     React.useEffect(() => {
         if (typeof document === 'undefined') return
         if (open) {
@@ -98,7 +111,6 @@ export function Menu() {
         } else {
             document.body.classList.remove('menu-open')
         }
-        // cleanup not strictly necessary but keep it safe
         return () => {
             document.body.classList.remove('menu-open')
         }
@@ -109,8 +121,6 @@ export function Menu() {
             <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
                 <DrawerHeader>
                     <Box sx={{width: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end'}}>
-
-                        {/* centered wordmark */}
                         <Box sx={(theme) => ({
                             position: 'absolute',
                             left: 0,
@@ -119,7 +129,6 @@ export function Menu() {
                             justifyContent: 'center',
                             alignItems: 'center',
                             pointerEvents: 'none',
-                            // animate maxWidth instead of width for smoother transitions from 0 to value
                             maxWidth: open ? 220 : 0,
                             opacity: open ? 1 : 0,
                             transform: open ? 'none' : 'translateY(-6px)',
@@ -136,7 +145,6 @@ export function Menu() {
                             />
                         </Box>
 
-                        {/* toggle button on the right */}
                         <IconButton onClick={() => setOpen((prev) => !prev)} sx={{zIndex: 1}}>
                             {open
                                 ? theme.direction === 'rtl'
@@ -165,6 +173,13 @@ export function Menu() {
                 <Box sx={{mt: 'auto'}}>
                     <Divider sx={{borderColor: 'rgba(148, 163, 184, 0.22)'}}/>
                     <List>
+                        <MenuItem
+                            open={open}
+                            label="Logout"
+                            icon={<LogoutIcon/>}
+                            onClick={handleLogout}
+                            tooltip="Logout"
+                        />
                         <MenuItem
                             open={open}
                             label="Account"

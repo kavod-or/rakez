@@ -11,25 +11,29 @@ type MenuItemProps = {
     open: boolean
     label: string
     icon: ReactNode
-    to: string
+    to?: string
     tooltip: string
+    onClick?: () => void
 }
 
-export function MenuItem({open, label, icon, to, tooltip}: MenuItemProps) {
+export function MenuItem({open, label, icon, to, tooltip, onClick}: MenuItemProps) {
     return (
-        <ListItem disablePadding sx={{display: 'block'}}>
+       <ListItem disablePadding sx={{display: 'block', width: '100%'}}>
             <ListItemButton
-                component={RouterLink}
-                to={to}
+                component={onClick ? 'button' : RouterLink}
+                to={onClick ? undefined : to}
+                type={onClick ? 'button' : undefined}
+                onClick={onClick}
                 sx={{
-                    minHeight: 48,
-                    px: 2.5,
-                    justifyContent: open ? 'initial' : 'center',
-                    '&:hover': {
-                        backgroundColor: open ? 'action.hover' : 'transparent',
-                    },
-                }}
-            >
+                   width: '100%',
+                   minHeight: 48,
+                   px: 2.5,
+                   justifyContent: open ? 'initial' : 'center',
+                   '&:hover': {
+                       backgroundColor: open ? 'action.hover' : 'transparent',
+                   },
+               }}
+           >
                 <ListItemIcon
                     sx={{
                         minWidth: 0,
