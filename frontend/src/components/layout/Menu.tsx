@@ -175,17 +175,17 @@ export function Menu() {
                     <List>
                         <MenuItem
                             open={open}
-                            label="Logout"
-                            icon={<LogoutIcon/>}
-                            onClick={handleLogout}
-                            tooltip="Logout"
-                        />
-                        <MenuItem
-                            open={open}
                             label="Account"
                             icon={<AccountCircleIcon/>}
                             to="/account"
                             tooltip="Account"
+                        />
+                        <MenuItem
+                            open={open}
+                            label="Logout"
+                            icon={<LogoutIcon/>}
+                            onClick={handleLogout}
+                            tooltip="Logout"
                         />
                     </List>
                 </Box>
