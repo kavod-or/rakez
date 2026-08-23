@@ -18,6 +18,16 @@ export type CurrentUser = {
   roles: RoleEntry[]
 }
 
+export type EventItem = {
+  id: number
+  public_id: string
+  name: string
+  start: string
+  end: string
+  timezone: string
+  description: string
+}
+
 export type LoginResponse = {
   detail: string
   user: {
@@ -80,6 +90,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   return (await response.json()) as CurrentUser
+}
+
+export async function getEvents(): Promise<EventItem[]> {
+  return apiFetch<EventItem[]>('/api/v1/events/')
 }
 
 export async function ensureCsrfCookie(): Promise<void> {
