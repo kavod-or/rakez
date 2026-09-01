@@ -1,7 +1,8 @@
-import React, {useEffect, useState} from 'react'
-import {useQuery} from '@tanstack/react-query'
+import {useEffect, useState} from 'react'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {Box, CircularProgress, Typography} from '@mui/material'
 import EventCard from '../components/EventCard'
+import {patchEvent} from '../api/client'
 
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
@@ -9,12 +10,6 @@ import {Panel} from '../components/layout/Panel'
 import {ContentArea} from '../components/layout/ContentArea'
 import {getEvents} from '../api/client'
 import type {EventItem} from '../api/client'
-
-const formatDateTime = (value: string) =>
-    new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value))
 
 export function EventsPage() {
     const {data: events = [], isLoading, isError, error} = useQuery<EventItem[]>({
@@ -26,6 +21,19 @@ export function EventsPage() {
     })
 
     const [activeEventId, setActiveEventId] = useState<string | null>(null)
+    const queryClient = useQueryClient()
+
+    const handleSave = async (id: number, data: {name: string; start: string; end: string; description?: string}) => {
+        try {
+            const updated = await patchEvent(id, data)
+            queryClient.setQueryData<EventItem[] | undefined>(['events'], (old) => {
+                if (!old) return old
+                return old.map((e) => (e.id === id ? updated : e))
+            })
+        } catch (err) {
+            console.error('Failed to save event', err)
+        }
+    }
 
     useEffect(() => {
         try {
@@ -79,6 +87,7 @@ export function EventsPage() {
                                             event={event}
                                             isActive={isActive}
                                             onActivate={setActive}
+                                            onSave={handleSave}
                                         />
                                     )
                                 })}

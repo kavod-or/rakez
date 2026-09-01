@@ -28,6 +28,31 @@ export type EventItem = {
   description: string
 }
 
+export type StaffPosition = {
+  id: number
+  name: string
+  service?: number
+}
+
+export type StaffItem = {
+  id: number
+  public_id: string
+  firstname: string
+  lastname: string
+  positions: StaffPosition[]
+}
+
+export type ServiceItem = {
+  id: number
+  name: string
+}
+
+export type PositionItem = {
+  id: number
+  name: string
+  service: number
+}
+
 export type LoginResponse = {
   detail: string
   user: {
@@ -96,6 +121,88 @@ export async function getEvents(): Promise<EventItem[]> {
   return apiFetch<EventItem[]>('/api/v1/events/')
 }
 
+export async function getStaff(): Promise<StaffItem[]> {
+  return apiFetch<StaffItem[]>('/api/v1/staff/')
+}
+
+export async function getServices(): Promise<ServiceItem[]> {
+  return apiFetch<ServiceItem[]>('/api/v1/services/')
+}
+
+export async function createService(name: string): Promise<ServiceItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ServiceItem>('/api/v1/services/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function patchService(id: number, name: string): Promise<ServiceItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ServiceItem>(`/api/v1/services/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function deleteService(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/services/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+  })
+}
+
+export async function getPositions(): Promise<PositionItem[]> {
+  return apiFetch<PositionItem[]>('/api/v1/positions/')
+}
+
+export async function createPosition(service: number, name: string): Promise<PositionItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<PositionItem>('/api/v1/positions/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify({ service, name }),
+  })
+}
+
+export async function patchPosition(id: number, name: string): Promise<PositionItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<PositionItem>(`/api/v1/positions/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function deletePosition(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/positions/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+  })
+}
+
 export async function ensureCsrfCookie(): Promise<void> {
   await fetch(apiUrl('/api/v1/auth/csrf/'), {
     credentials: 'include',
@@ -132,5 +239,17 @@ export async function logout(): Promise<{ detail: string }> {
     headers: {
       ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
     },
+  })
+}
+
+export async function patchEvent(id: number, patch: Partial<{ name: string; start: string; end: string; timezone: string; description: string }>): Promise<EventItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<EventItem>(`/api/v1/events/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify(patch),
   })
 }

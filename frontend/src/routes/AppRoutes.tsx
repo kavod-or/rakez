@@ -5,6 +5,7 @@ import {LoginPage} from '../pages/LoginPage'
 import {ProtectedRoute} from './ProtectedRoute'
 import {EventsPage} from "../pages/Events.tsx";
 import {StaffPage} from "../pages/Staff.tsx";
+import {ServicesPage} from "../pages/Services.tsx";
 import {AccountPage} from "../pages/Account.tsx";
 import {NotFoundPage} from "../pages/NotFound.tsx";
 
@@ -18,6 +19,7 @@ export function AppRoutes() {
                 <Route path="/dashboard" element={<DashboardPage/>}/>
                 <Route path="/events" element={<EventsPage/>}/>
                 <Route path="/staff" element={<StaffPage/>}/>
+                <Route path="/services" element={<ServicesPage/>}/>
                 <Route path="/account" element={<AccountPage/>}/>
                 
                 <Route path="*" element={<NotFoundPage/>}/>
