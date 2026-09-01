@@ -57,6 +57,23 @@ export const theme = createTheme({
             styleOverrides: {
                 '*': {
                     boxSizing: 'border-box',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(148, 163, 184, 0.55) rgba(15, 23, 42, 0.45)',
+                    '&::-webkit-scrollbar': {
+                        width: 8,
+                        height: 8,
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        background: 'rgba(15, 23, 42, 0.45)',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'rgba(148, 163, 184, 0.55)',
+                        borderRadius: 999,
+                        border: '2px solid rgba(15, 23, 42, 0.45)',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                        backgroundColor: 'rgba(68, 167, 143, 0.8)',
+                    },
                 },
                 html: {
                     minHeight: '100%',
@@ -100,6 +117,57 @@ export const theme = createTheme({
         MuiButton: {
             defaultProps: {
                 disableElevation: true,
+            },
+        },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    backgroundColor: '#0f172a',
+                    backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.02), transparent)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    boxShadow: '0 24px 70px rgba(0, 0, 0, 0.45)',
+                    color: '#E5EEFC',
+                },
+            },
+        },
+        MuiDialogTitle: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    color: '#E5EEFC',
+                    borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
+                    paddingTop: 16,
+                    paddingBottom: 16,
+                },
+            },
+        },
+        MuiDialogContent: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: '#0f172a',
+                    color: '#E5EEFC',
+                    paddingTop: 16,
+                    paddingBottom: 16,
+                },
+            },
+        },
+        MuiDialogActions: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    borderTop: '1px solid rgba(148, 163, 184, 0.12)',
+                    paddingTop: 12,
+                    paddingBottom: 12,
+                    paddingLeft: 16,
+                    paddingRight: 16,
+                },
+            },
+        },
+        MuiIconButton: {
+            styleOverrides: {
+                root: {
+                    color: '#E5EEFC',
+                },
             },
         },
     },

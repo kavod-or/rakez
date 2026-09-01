@@ -71,6 +71,7 @@ export function ServicesPage() {
     const [isDeletingService, setIsDeletingService] = useState(false)
     const [deleteServiceDialogOpen, setDeleteServiceDialogOpen] = useState(false)
     const [positionInputOpen, setPositionInputOpen] = useState(false)
+    const [positionSearch, setPositionSearch] = useState('')
     const [newPositionName, setNewPositionName] = useState('')
     const [isCreatingService, setIsCreatingService] = useState(false)
     const [isAddingPosition, setIsAddingPosition] = useState(false)
@@ -94,6 +95,9 @@ export function ServicesPage() {
     }, [detailService, positions])
 
     const detailServicePositions = detailService ? positions.filter((position) => position.service === detailService.id) : []
+    const filteredServicePositions = detailServicePositions.filter((position) =>
+        position.name.toLowerCase().includes(positionSearch.trim().toLowerCase()),
+    )
     const hasPositionChanges = (position: PositionItem) =>
         (positionDrafts[position.id] ?? position.name).trim() !== position.name.trim()
     const hasServiceNameChanges = detailService ? serviceEditName.trim() !== detailService.name.trim() : false
@@ -350,7 +354,12 @@ export function ServicesPage() {
                                 onKeyDown={(event) => {
                                     if (event.key === 'Enter') {
                                         event.preventDefault()
-                                        void handleSaveService()
+                                        if (hasServiceNameChanges) {
+                                            void handleSaveService()
+                                        } else {
+                                            setIsEditing(false)
+                                            setServiceEditError(null)
+                                        }
                                     }
                                 }}
                                 sx={{'& .MuiInputBase-root': {fontSize: '1.25rem', fontWeight: 500}}}
@@ -370,21 +379,66 @@ export function ServicesPage() {
                     ) : (
                         <span>{detailService?.name ?? 'Service details'}</span>
                     )}
-                    <IconButton aria-label="Close service dialog" onClick={closeServiceDialog} size="small">
-                        <CloseIcon/>
-                    </IconButton>
+                    <Stack direction="row" spacing={0.5} sx={{alignItems: 'center'}}>
+                        {!isEditing && (
+                            <IconButton
+                                aria-label="Edit service"
+                                onClick={() => setIsEditing(true)}
+                                size="small"
+                                sx={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 1,
+                                    '&:hover': {backgroundColor: 'action.hover'},
+                                }}
+                            >
+                                <EditIcon fontSize="small"/>
+                            </IconButton>
+                        )}
+                        <IconButton aria-label="Close service dialog" onClick={() => {
+                            if (isEditing) {
+                                setIsEditing(false)
+                                setServiceEditError(null)
+                                setPositionInputOpen(false)
+                                return
+                            }
+
+                            closeServiceDialog()
+                        }} size="small" sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 1,
+                            '&:hover': {backgroundColor: 'action.hover'},
+                        }}>
+                            <CloseIcon fontSize="small"/>
+                        </IconButton>
+                    </Stack>
                 </DialogTitle>
-                <DialogContent dividers sx={{position: 'relative', pb: 8}}>
+                <DialogContent dividers sx={{position: 'relative', pb: isEditing ? 2 : 2}}>
                     {detailService ? (
                         <Stack spacing={2}>
                             {serviceEditError && (
                                 <Typography variant="body2" color="error">{serviceEditError}</Typography>
                             )}
 
-                            <Box>
-                                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1}}>
-                                    <Typography variant="subtitle2" sx={{fontWeight: 600}}>Positions</Typography>
-                                    {isEditing && (
+                            <Box sx={{border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, backgroundColor: 'rgba(0,0,0,0.01)'}}>
+                                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1}}>
+                                    <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary'}}>Positions</Typography>
+                                    <Stack direction="row" spacing={1} sx={{alignItems: 'center', flex: 1, justifyContent: 'flex-end'}}>
+                                        <TextField
+                                            size="small"
+                                            placeholder="Search"
+                                            value={positionSearch}
+                                            onChange={(event) => setPositionSearch(event.target.value)}
+                                            sx={{
+                                                minWidth: 180,
+                                                maxWidth: 220,
+                                                '& .MuiInputBase-root': {
+                                                    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+                                                    height: 32,
+                                                },
+                                            }}
+                                        />
                                         <IconButton
                                             size="small"
                                             color="primary"
@@ -393,10 +447,10 @@ export function ServicesPage() {
                                         >
                                             <AddIcon/>
                                         </IconButton>
-                                    )}
+                                    </Stack>
                                 </Box>
 
-                                {isEditing && positionInputOpen && (
+                                {positionInputOpen && (
                                     <Stack direction="row" spacing={1} sx={{mb: 2}}>
                                         <TextField
                                             size="small"
@@ -426,14 +480,22 @@ export function ServicesPage() {
                                     <Typography variant="body2" color="error" sx={{mb: 1}}>{positionError}</Typography>
                                 )}
 
-                                <List dense disablePadding>
-                                    {detailServicePositions.length === 0 ? (
+                                <List
+                                    dense
+                                    disablePadding
+                                    sx={{
+                                        height: 320,
+                                        overflowY: 'auto',
+                                        pr: 0.5,
+                                    }}
+                                >
+                                    {filteredServicePositions.length === 0 ? (
                                         <ListItem disablePadding>
-                                            <ListItemText primary="No positions yet" secondary="Use the plus button to add one."/>
+                                            <ListItemText primary={detailServicePositions.length === 0 ? 'No positions yet' : 'No matching positions'} secondary={detailServicePositions.length === 0 ? 'Use the plus button to add one.' : 'Try a different search.'}/>
                                         </ListItem>
                                     ) : (
-                                        detailServicePositions.map((position) => (
-                                            <ListItem key={position.id} disablePadding>
+                                        filteredServicePositions.map((position) => (
+                                            <ListItem key={position.id} disablePadding sx={{py: 0.5}}>
                                                 {isEditing ? (
                                                     <Stack direction="row" spacing={1} sx={{width: '100%', alignItems: 'center'}}>
                                                         <TextField
@@ -444,8 +506,15 @@ export function ServicesPage() {
                                                                     [position.id]: event.target.value,
                                                                 }))
                                                             }
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === 'Enter' && hasPositionChanges(position)) {
+                                                                    event.preventDefault()
+                                                                    void handleRenamePosition(position)
+                                                                }
+                                                            }}
                                                             size="small"
                                                             fullWidth
+                                                            sx={{'& .MuiInputBase-input': {fontSize: '0.875rem', lineHeight: 1.4}}}
                                                         />
                                                         {hasPositionChanges(position) && (
                                                             <IconButton
@@ -469,7 +538,22 @@ export function ServicesPage() {
                                                         </IconButton>
                                                     </Stack>
                                                 ) : (
-                                                    <ListItemText primary={position.name}/>
+                                                    <Box
+                                                        sx={{
+                                                            width: '100%',
+                                                            border: '1px solid',
+                                                            borderColor: 'divider',
+                                                            borderRadius: 1,
+                                                            px: 1.5,
+                                                            py: 0.75,
+                                                            backgroundColor: 'background.paper',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            minHeight: 40,
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>{position.name}</Typography>
+                                                    </Box>
                                                 )}
                                             </ListItem>
                                         ))
@@ -478,30 +562,7 @@ export function ServicesPage() {
                             </Box>
 
                             {isEditing && (
-                                <Box sx={{borderTop: '1px solid', borderColor: 'divider', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2}}>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        size="small"
-                                        onClick={() => {
-                                            if (hasServiceNameChanges) {
-                                                void handleSaveService()
-                                                return
-                                            }
-
-                                            setIsEditing(false)
-                                            setServiceEditError(null)
-                                        }}
-                                        disabled={isSavingService}
-                                        sx={{
-                                            height: 36,
-                                            minHeight: 36,
-                                            paddingY: 0,
-                                        }}
-                                    >
-                                        {isSavingService ? 'Saving…' : 'Save'}
-                                    </Button>
-
+                                <Box sx={{display: 'flex', justifyContent: 'flex-start'}}>
                                     <Button
                                         variant="outlined"
                                         color="error"
@@ -522,24 +583,6 @@ export function ServicesPage() {
                     ) : null}
                 </DialogContent>
 
-                {!isEditing && (
-                    <Fab
-                        color="secondary"
-                        size="small"
-                        aria-label="Edit service"
-                        sx={{
-                            position: 'absolute',
-                            right: 20,
-                            bottom: 20,
-                            width: 36,
-                            height: 36,
-                            minHeight: 36,
-                        }}
-                        onClick={() => setIsEditing(true)}
-                    >
-                        <EditIcon fontSize="small"/>
-                    </Fab>
-                )}
             </Dialog>
 
             <Dialog open={deleteServiceDialogOpen} onClose={() => setDeleteServiceDialogOpen(false)} maxWidth="xs" fullWidth>
