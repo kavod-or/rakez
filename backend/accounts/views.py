@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -72,10 +72,11 @@ def logout_view(request):
 @permission_classes([IsAuthenticated])
 def me_view(request):
     user = request.user
+    return Response(_user_payload(user))
 
+
+def _user_payload(user):
     # collect global roles
-    global_qs = GlobalRole.objects.filter(user=user).values_list("role", flat=True)
-
     # collect event roles with related event info
     event_qs = EventRole.objects.filter(user=user).select_related("event")
 
@@ -107,13 +108,19 @@ def me_view(request):
             "target": {"id": sr.service.id, "name": sr.service.name},
         })
 
-    return Response(
-        {
-            "id": user.id,
-            "username": user.get_username(),
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "roles": roles,
-        }
-    )
+    return {
+        "id": user.id,
+        "username": user.get_username(),
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "roles": roles,
+    }
+
+
+@extend_schema(responses=OpenApiResponse(description="Users"))
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def users_view(request):
+    User = get_user_model()
+    return Response([_user_payload(user) for user in User.objects.all().order_by("first_name", "last_name", "username")])

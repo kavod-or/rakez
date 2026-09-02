@@ -36,6 +36,21 @@ import {
 } from '../api/client'
 import type {PositionItem, ServiceItem} from '../api/client'
 
+const dialogIconButtonSx = {
+    width: 28,
+    height: 28,
+    borderRadius: 1,
+    '&:hover': {backgroundColor: 'action.hover'},
+}
+
+function getServicePositions(serviceId: number, positions: PositionItem[]) {
+    return positions.filter((position) => position.service === serviceId)
+}
+
+function getPositionLabel(position: PositionItem, serviceNames: Map<number, string>) {
+    return `${serviceNames.get(position.service ?? -1) ?? 'Unknown'} - ${position.name}`
+}
+
 export function ServicesPage() {
     const queryClient = useQueryClient()
 
@@ -76,13 +91,14 @@ export function ServicesPage() {
     const [positionDrafts, setPositionDrafts] = useState<Record<number, string>>({})
     const [savingPositionId, setSavingPositionId] = useState<number | null>(null)
     const [deletingPositionId, setDeletingPositionId] = useState<number | null>(null)
+    const serviceNames = new Map(services.map((service) => [service.id, service.name]))
 
     useEffect(() => {
         if (!detailService) {
             return
         }
 
-        const servicePositions = positions.filter((item) => item.service === detailService.id)
+        const servicePositions = getServicePositions(detailService.id, positions)
 
         setServiceEditName(detailService.name)
         setServiceEditError(null)
@@ -91,7 +107,7 @@ export function ServicesPage() {
         )
     }, [detailService, positions])
 
-    const detailServicePositions = detailService ? positions.filter((position) => position.service === detailService.id) : []
+    const detailServicePositions = detailService ? getServicePositions(detailService.id, positions) : []
     const filteredServicePositions = detailServicePositions.filter((position) =>
         position.name.toLowerCase().includes(positionSearch.trim().toLowerCase()),
     )
@@ -292,7 +308,7 @@ export function ServicesPage() {
                                             >
                                                 <ListItemText
                                                     primary={service.name}
-                                                    secondary={`${positions.filter((position) => position.service === service.id).length} positions`}
+                                                    secondary={`${getServicePositions(service.id, positions).length} positions`}
                                                 />
                                             </ListItemButton>
                                         </ListItem>
@@ -395,10 +411,7 @@ export function ServicesPage() {
                                 onClick={() => setIsEditing(true)}
                                 size="small"
                                 sx={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 1,
-                                    '&:hover': {backgroundColor: 'action.hover'},
+                                    ...dialogIconButtonSx,
                                 }}
                             >
                                 <EditIcon fontSize="small"/>
@@ -413,12 +426,7 @@ export function ServicesPage() {
                             }
 
                             closeServiceDialog()
-                        }} size="small" sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 1,
-                            '&:hover': {backgroundColor: 'action.hover'},
-                        }}>
+                        }} size="small" sx={dialogIconButtonSx}>
                             <CloseIcon fontSize="small"/>
                         </IconButton>
                     </Stack>
@@ -562,7 +570,7 @@ export function ServicesPage() {
                                                         minHeight: 40,
                                                     }}
                                                 >
-                                                    <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>{position.name}</Typography>
+                                                    <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>{getPositionLabel(position, serviceNames)}</Typography>
                                                 </Box>
                                             )}
                                         </ListItem>

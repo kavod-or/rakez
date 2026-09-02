@@ -8,6 +8,7 @@ import {StaffPage} from "../pages/Staff.tsx";
 import {ServicesPage} from "../pages/Services.tsx";
 import {AccountPage} from "../pages/Account.tsx";
 import {NotFoundPage} from "../pages/NotFound.tsx";
+import {UsersPage} from "../pages/Users.tsx";
 
 export function AppRoutes() {
     return (
@@ -21,6 +22,7 @@ export function AppRoutes() {
                 <Route path="/staff" element={<StaffPage/>}/>
                 <Route path="/services" element={<ServicesPage/>}/>
                 <Route path="/account" element={<AccountPage/>}/>
+                <Route path="/users" element={<UsersPage/>}/>
                 
                 <Route path="*" element={<NotFoundPage/>}/>
             </Route>

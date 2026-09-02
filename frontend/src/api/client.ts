@@ -18,6 +18,8 @@ export type CurrentUser = {
   roles: RoleEntry[]
 }
 
+export type UserItem = CurrentUser
+
 export type EventItem = {
   id: number
   public_id: string
@@ -115,6 +117,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   return (await response.json()) as CurrentUser
+}
+
+export async function getUsers(): Promise<UserItem[]> {
+  return apiFetch<UserItem[]>('/api/v1/auth/users/')
 }
 
 export async function getEvents(): Promise<EventItem[]> {

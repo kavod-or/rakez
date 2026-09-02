@@ -39,6 +39,30 @@ type StaffRow = {
     member: StaffItem
 }
 
+const emptyStaff: StaffItem = {
+    id: 0,
+    public_id: '',
+    firstname: '',
+    lastname: '',
+    positions: [],
+}
+
+function getStaffRows(staff: StaffItem[], services: ServiceItem[]): StaffRow[] {
+    const serviceNames = new Map(services.map((service) => [service.id, service.name]))
+
+    return staff.map((member) => ({
+        id: member.id,
+        firstname: member.firstname,
+        lastname: member.lastname,
+        services: Array.from(new Set(
+            member.positions
+                .map((position) => serviceNames.get(position.service ?? -1))
+                .filter((name): name is string => Boolean(name)),
+        )).join(', ') || '—',
+        member,
+    }))
+}
+
 const staffColumns: GridColDef<StaffRow>[] = [
     {field: 'firstname', headerName: 'First name', flex: 1, minWidth: 160},
     {field: 'lastname', headerName: 'Last name', flex: 1, minWidth: 160},
@@ -58,6 +82,16 @@ function StaffToolbar() {
             <GridToolbarFilterButton/>
         </Stack>
     )
+}
+
+const dialogIconButtonSx = {
+    width: 28,
+    height: 28,
+    borderRadius: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    '&:hover': {backgroundColor: 'action.hover'},
 }
 
 function StaffDetailDialog({
@@ -155,8 +189,7 @@ function StaffDetailDialog({
     }
 
     return (
-        <>
-            <DetailDialog
+        <DetailDialog
                 open={open ?? Boolean(staff)}
                 onClose={onClose}
                 maxWidth="sm"
@@ -220,15 +253,7 @@ function StaffDetailDialog({
                                aria-label="Edit staff name"
                                onClick={() => setIsEditing(true)}
                                size="small"
-                               sx={{
-                                   width: 28,
-                                   height: 28,
-                                   borderRadius: 1,
-                                   display: 'flex',
-                                   alignItems: 'center',
-                                   justifyContent: 'center',
-                                   '&:hover': {backgroundColor: 'action.hover'},
-                               }}
+                               sx={dialogIconButtonSx}
                            >
                                <EditIcon fontSize="small"/>
                            </IconButton>
@@ -239,15 +264,7 @@ function StaffDetailDialog({
                                aria-label="Save staff name"
                                onClick={() => void handleSaveName()}
                                size="small"
-                               sx={{
-                                   width: 28,
-                                   height: 28,
-                                   borderRadius: 1,
-                                   display: 'flex',
-                                   alignItems: 'center',
-                                   justifyContent: 'center',
-                                   '&:hover': {backgroundColor: 'action.hover'},
-                               }}
+                               sx={dialogIconButtonSx}
                            >
                                <CheckIcon fontSize="small"/>
                            </IconButton>
@@ -269,15 +286,7 @@ function StaffDetailDialog({
                                onClose()
                            }}
                            size="small"
-                           sx={{
-                               width: 28,
-                               height: 28,
-                               borderRadius: 1,
-                               display: 'flex',
-                               alignItems: 'center',
-                               justifyContent: 'center',
-                               '&:hover': {backgroundColor: 'action.hover'},
-                           }}
+                           sx={dialogIconButtonSx}
                        >
                            <CloseIcon fontSize="small"/>
                        </IconButton>
@@ -427,7 +436,6 @@ function StaffDetailDialog({
                     </Stack>
                 ) : null}
             </DetailDialog>
-        </>
     )
 }
 
@@ -461,26 +469,7 @@ export function StaffPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [isDeletingStaff, setIsDeletingStaff] = useState(false)
 
-    const rows: StaffRow[] = staff.map((member) => {
-        const serviceNames = Array.from(
-            new Set(
-                member.positions
-                    .map((position) => {
-                        const service = services.find((item) => item.id === position.service)
-                        return service?.name ?? null
-                    })
-                    .filter((name): name is string => Boolean(name)),
-            ),
-        )
-
-        return {
-            id: member.id,
-            firstname: member.firstname,
-            lastname: member.lastname,
-            services: serviceNames.join(', ') || '—',
-            member,
-        }
-    })
+    const rows = getStaffRows(staff, services)
 
     const handleCreateStaff = async (firstname: string, lastname: string) => {
         try {
@@ -739,13 +728,7 @@ export function StaffPage() {
             />
 
             <StaffDetailDialog
-                staff={{
-                    id: 0,
-                    public_id: '',
-                    firstname: '',
-                    lastname: '',
-                    positions: [],
-                }}
+                staff={emptyStaff}
                 services={services}
                 positions={positions}
                 isCreateMode
