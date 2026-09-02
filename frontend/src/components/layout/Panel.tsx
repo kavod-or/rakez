@@ -21,6 +21,8 @@ export function Panel({children, sx, title, titleSx}: PanelProps) {
                 boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',
+                minHeight: 0,
+                overflow: 'auto',
                 ...glassSurfaceStyles,
                 ...sx,
             }}

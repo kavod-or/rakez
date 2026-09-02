@@ -69,7 +69,9 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
       onClick={handleActivate}
       onKeyDown={handleCardKeyDown}
       sx={(theme) => ({
-        height: '100%',
+        width: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
         cursor: 'pointer',
         boxShadow: theme.shadows[1],
         border: isActive ? `2px solid ${theme.palette.primary.main}` : '1px solid transparent',
@@ -78,7 +80,7 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
         position: 'relative',
       })}
     >
-      <CardContent sx={{display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5}}>
+      <CardContent sx={{display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, boxSizing: 'border-box'}}>
         <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1}}>
           {isEditing ? (
             <TextField
@@ -92,7 +94,7 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
             }}
           />
           ) : (
-          <Typography variant="h6" sx={{fontWeight: 600}}>{title}</Typography>
+          <Typography variant="h6" sx={{fontWeight: 600, minWidth: 0, overflowWrap: 'anywhere'}}>{title}</Typography>
           )}
 
           <Box sx={{display: 'flex', alignItems: 'center'}}>
@@ -103,13 +105,13 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
         </Box>
 
         <Stack spacing={0.5}>
-          <Box>
+          <Box sx={{minWidth: 0}}>
             <Typography variant="caption" color="text.secondary">Timezone</Typography>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>
-              <Typography variant="body2">{event.timezone}</Typography>
+              <Typography variant="body2" sx={{minWidth: 0, overflowWrap: 'anywhere'}}>{event.timezone}</Typography>
             </Box>
           </Box>
-          <Box>
+          <Box sx={{minWidth: 0}}>
             <Typography variant="caption" color="text.secondary">Starts</Typography>
             {isEditing ? (
               <TextField
@@ -123,10 +125,10 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
                 slotProps={{htmlInput: {'aria-label': 'Start datetime'}}}
               />
             ) : (
-              <Typography variant="body2">{formatDateTime(event.start)}</Typography>
+              <Typography variant="body2" sx={{overflowWrap: 'anywhere'}}>{formatDateTime(event.start)}</Typography>
             )}
           </Box>
-          <Box>
+          <Box sx={{minWidth: 0}}>
             <Typography variant="caption" color="text.secondary">Ends</Typography>
             {isEditing ? (
               <TextField
@@ -140,7 +142,7 @@ export default function EventCard({event, isActive = false, onActivate, onSave}:
                 slotProps={{htmlInput: {'aria-label': 'End datetime'}}}
               />
             ) : (
-              <Typography variant="body2">{formatDateTime(event.end)}</Typography>
+              <Typography variant="body2" sx={{overflowWrap: 'anywhere'}}>{formatDateTime(event.end)}</Typography>
             )}
           </Box>
         </Stack>

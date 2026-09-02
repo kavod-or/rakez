@@ -125,6 +125,53 @@ export async function getStaff(): Promise<StaffItem[]> {
   return apiFetch<StaffItem[]>('/api/v1/staff/')
 }
 
+export async function createStaff(firstname: string, lastname: string): Promise<StaffItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<StaffItem>('/api/v1/staff/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({ firstname, lastname }),
+  })
+}
+
+export async function patchStaff(id: number, firstname: string, lastname: string): Promise<StaffItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<StaffItem>(`/api/v1/staff/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({ firstname, lastname }),
+  })
+}
+
+export async function assignStaffPosition(staffId: number, positionId: number): Promise<{ staff: number; position: number }> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<{ staff: number; position: number }>(`/api/v1/staff/${staffId}/assign-position/`, {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({ position_id: positionId }),
+  })
+}
+
+export async function removeStaffPosition(staffId: number, positionId: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/staff/${staffId}/remove-position/${positionId}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+  })
+}
+
 export async function getServices(): Promise<ServiceItem[]> {
   return apiFetch<ServiceItem[]>('/api/v1/services/')
 }
@@ -160,6 +207,17 @@ export async function deleteService(id: number): Promise<void> {
     method: 'DELETE',
     headers: {
       ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+  })
+}
+
+export async function deleteStaff(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/staff/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
     },
   })
 }

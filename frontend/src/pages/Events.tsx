@@ -53,7 +53,7 @@ export function EventsPage() {
         <AppShell maxWidth={false}>
             <Menu/>
             <ContentArea>
-                <Panel title="Events" sx={{height: '100%'}}>
+                <Panel title="Events" sx={{height: '100%', minWidth: 0}}>
                     {isLoading && (
                         <Box sx={{display: 'grid', placeItems: 'center', minHeight: 200}}>
                             <CircularProgress/>
@@ -70,12 +70,16 @@ export function EventsPage() {
                         ) : (
                             <Box sx={{
                                 display: 'grid',
+                                width: '100%',
+                                minWidth: 0,
+                                boxSizing: 'border-box',
                                 gridTemplateColumns: {
                                     xs: '1fr',
                                     sm: 'repeat(2, minmax(0, 1fr))',
                                     xl: 'repeat(3, minmax(0, 1fr))',
                                 },
                                 gap: 2,
+                                overflow: 'hidden',
                             }}>
                                 {events.map((event) => {
                                     const id = event.public_id || event.id

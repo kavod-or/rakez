@@ -13,10 +13,14 @@ export function AppShell({ children, maxWidth = 'md', disableGutters = false }: 
     <Box
       sx={{
         minHeight: '100svh',
+        height: '100svh',
+        boxSizing: 'border-box',
         py: { xs: 2, sm: 4 },
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <Container maxWidth={maxWidth} disableGutters={disableGutters}>
+      <Container maxWidth={maxWidth} disableGutters={disableGutters} sx={{height: '100%', display: 'flex', flexDirection: 'column'}}>
         {children}
       </Container>
     </Box>

@@ -34,12 +34,31 @@ export function ContentArea({children, sx, padding = {xs: 1, sm: 2}}: ContentAre
     'body.menu-open &': {
       left: `${drawerWidth}px`,
     },
-    p: padding,
-    overflow: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
     boxSizing: 'border-box',
+    height: '100dvh',
+    maxHeight: '100dvh',
+    minHeight: 0,
   } as const
 
   const merged = [base, sx] as SxProps<Theme>
 
-  return <Box sx={merged}>{children}</Box>
+  return (
+    <Box sx={merged}>
+      <Box
+        sx={{
+          flex: '1 1 auto',
+          minWidth: 0,
+          minHeight: 0,
+          width: '100%',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+          p: padding,
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  )
 }

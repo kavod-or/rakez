@@ -3,10 +3,6 @@ import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {
     Box,
     Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Fab,
     IconButton,
     List,
@@ -27,6 +23,7 @@ import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
 import {Panel} from '../components/layout/Panel'
 import {ContentArea} from '../components/layout/ContentArea'
+import {DetailDialog} from '../components/ui/DetailDialog'
 import {
     createPosition,
     createService,
@@ -106,6 +103,7 @@ export function ServicesPage() {
         setServiceDialogOpen(false)
         setIsEditing(false)
         setPositionInputOpen(false)
+        setPositionSearch('')
         setServiceEditError(null)
         setPositionError(null)
     }
@@ -114,6 +112,8 @@ export function ServicesPage() {
         setSelectedServiceId(service.id)
         setDetailService(service)
         setIsEditing(false)
+        setPositionInputOpen(false)
+        setPositionSearch('')
         setServiceDialogOpen(true)
     }
 
@@ -278,26 +278,26 @@ export function ServicesPage() {
 
                     {!isLoading && !isError && (
                         <List sx={{width: '100%'}}>
-                            {services.length === 0 ? (
-                                <ListItem disablePadding>
-                                    <ListItemText primary="No services yet" secondary="Create one with the plus button below."/>
-                                </ListItem>
-                            ) : (
-                                services.map((service) => (
-                                    <ListItem key={service.id} disablePadding>
-                                        <ListItemButton
-                                            selected={serviceDialogOpen && selectedServiceId === service.id}
-                                            onClick={() => openServiceDetail(service)}
-                                            sx={{borderRadius: 2, py: 1.5}}
-                                        >
-                                            <ListItemText
-                                                primary={service.name}
-                                                secondary={`${positions.filter((position) => position.service === service.id).length} positions`}
-                                            />
-                                        </ListItemButton>
+                                {services.length === 0 ? (
+                                    <ListItem disablePadding>
+                                        <ListItemText primary="No services yet" secondary="Create one with the plus button below."/>
                                     </ListItem>
-                                ))
-                            )}
+                                ) : (
+                                    services.map((service) => (
+                                        <ListItem key={service.id} disablePadding>
+                                            <ListItemButton
+                                                selected={serviceDialogOpen && selectedServiceId === service.id}
+                                                onClick={() => openServiceDetail(service)}
+                                                sx={{borderRadius: 2, py: 1.5}}
+                                            >
+                                                <ListItemText
+                                                    primary={service.name}
+                                                    secondary={`${positions.filter((position) => position.service === service.id).length} positions`}
+                                                />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    ))
+                                )}
                         </List>
                     )}
 
@@ -312,39 +312,46 @@ export function ServicesPage() {
                 </Panel>
             </ContentArea>
 
-            <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Create service</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{pt: 1}}>
-                        <TextField
-                            label="Service name"
-                            value={createServiceName}
-                            onChange={(event) => setCreateServiceName(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                    event.preventDefault()
-                                    void handleCreateService()
-                                }
-                            }}
-                            autoFocus
-                            fullWidth
-                        />
-                        {createServiceError && (
-                            <Typography color="error" variant="body2">{createServiceError}</Typography>
-                        )}
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setCreateDialogOpen(false)} color="inherit">Cancel</Button>
-                    <Button onClick={() => void handleCreateService()} variant="contained" disabled={isCreatingService || !createServiceName.trim()}>
-                        {isCreatingService ? 'Creating…' : 'Create'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <DetailDialog
+                open={createDialogOpen}
+                onClose={() => setCreateDialogOpen(false)}
+                maxWidth="xs"
+                title="Create service"
+                footer={
+                    <>
+                        <Button onClick={() => setCreateDialogOpen(false)} color="inherit">Cancel</Button>
+                        <Button onClick={() => void handleCreateService()} variant="contained" disabled={isCreatingService || !createServiceName.trim()}>
+                            {isCreatingService ? 'Creating…' : 'Create'}
+                        </Button>
+                    </>
+                }
+            >
+                <Stack spacing={2} sx={{pt: 1}}>
+                    <TextField
+                        label="Service name"
+                        value={createServiceName}
+                        onChange={(event) => setCreateServiceName(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault()
+                                void handleCreateService()
+                            }
+                        }}
+                        autoFocus
+                        fullWidth
+                    />
+                    {createServiceError && (
+                        <Typography color="error" variant="body2">{createServiceError}</Typography>
+                    )}
+                </Stack>
+            </DetailDialog>
 
-            <Dialog open={serviceDialogOpen} onClose={closeServiceDialog} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1}}>
-                    {isEditing ? (
+            <DetailDialog
+                open={serviceDialogOpen}
+                onClose={closeServiceDialog}
+                maxWidth="sm"
+                title={
+                    isEditing ? (
                         <Stack direction="row" spacing={1} sx={{alignItems: 'center', width: '100%'}}>
                             <TextField
                                 fullWidth
@@ -378,7 +385,9 @@ export function ServicesPage() {
                         </Stack>
                     ) : (
                         <span>{detailService?.name ?? 'Service details'}</span>
-                    )}
+                    )
+                }
+                titleActions={
                     <Stack direction="row" spacing={0.5} sx={{alignItems: 'center'}}>
                         {!isEditing && (
                             <IconButton
@@ -413,192 +422,194 @@ export function ServicesPage() {
                             <CloseIcon fontSize="small"/>
                         </IconButton>
                     </Stack>
-                </DialogTitle>
-                <DialogContent dividers sx={{position: 'relative', pb: isEditing ? 2 : 2}}>
-                    {detailService ? (
-                        <Stack spacing={2}>
-                            {serviceEditError && (
-                                <Typography variant="body2" color="error">{serviceEditError}</Typography>
-                            )}
+                }
+                contentSx={{position: 'relative', pb: 2}}
+            >
+                {detailService ? (
+                    <Stack spacing={2}>
+                        {serviceEditError && (
+                            <Typography variant="body2" color="error">{serviceEditError}</Typography>
+                        )}
 
-                            <Box sx={{border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, backgroundColor: 'rgba(0,0,0,0.01)'}}>
-                                <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1}}>
-                                    <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary'}}>Positions</Typography>
-                                    <Stack direction="row" spacing={1} sx={{alignItems: 'center', flex: 1, justifyContent: 'flex-end'}}>
-                                        <TextField
-                                            size="small"
-                                            placeholder="Search"
-                                            value={positionSearch}
-                                            onChange={(event) => setPositionSearch(event.target.value)}
-                                            sx={{
-                                                minWidth: 180,
-                                                maxWidth: 220,
-                                                '& .MuiInputBase-root': {
-                                                    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-                                                    height: 32,
-                                                },
-                                            }}
-                                        />
-                                        <IconButton
-                                            size="small"
-                                            color="primary"
-                                            aria-label="Add position"
-                                            onClick={() => setPositionInputOpen((value) => !value)}
-                                        >
-                                            <AddIcon/>
-                                        </IconButton>
-                                    </Stack>
-                                </Box>
-
-                                {positionInputOpen && (
-                                    <Stack direction="row" spacing={1} sx={{mb: 2}}>
-                                        <TextField
-                                            size="small"
-                                            placeholder="New position"
-                                            value={newPositionName}
-                                            onChange={(event) => setNewPositionName(event.target.value)}
-                                            onKeyDown={(event) => {
-                                                if (event.key === 'Enter') {
-                                                    event.preventDefault()
-                                                    void handleAddPosition()
-                                                }
-                                            }}
-                                            autoFocus
-                                            fullWidth
-                                        />
-                                        <Button
-                                            variant="contained"
-                                            onClick={() => void handleAddPosition()}
-                                            disabled={isAddingPosition || !newPositionName.trim()}
-                                        >
-                                            {isAddingPosition ? 'Adding…' : 'Add'}
-                                        </Button>
-                                    </Stack>
-                                )}
-
-                                {positionError && (
-                                    <Typography variant="body2" color="error" sx={{mb: 1}}>{positionError}</Typography>
-                                )}
-
-                                <List
-                                    dense
-                                    disablePadding
-                                    sx={{
-                                        height: 320,
-                                        overflowY: 'auto',
-                                        pr: 0.5,
-                                    }}
-                                >
-                                    {filteredServicePositions.length === 0 ? (
-                                        <ListItem disablePadding>
-                                            <ListItemText primary={detailServicePositions.length === 0 ? 'No positions yet' : 'No matching positions'} secondary={detailServicePositions.length === 0 ? 'Use the plus button to add one.' : 'Try a different search.'}/>
-                                        </ListItem>
-                                    ) : (
-                                        filteredServicePositions.map((position) => (
-                                            <ListItem key={position.id} disablePadding sx={{py: 0.5}}>
-                                                {isEditing ? (
-                                                    <Stack direction="row" spacing={1} sx={{width: '100%', alignItems: 'center'}}>
-                                                        <TextField
-                                                            value={positionDrafts[position.id] ?? position.name}
-                                                            onChange={(event) =>
-                                                                setPositionDrafts((current) => ({
-                                                                    ...current,
-                                                                    [position.id]: event.target.value,
-                                                                }))
-                                                            }
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === 'Enter' && hasPositionChanges(position)) {
-                                                                    event.preventDefault()
-                                                                    void handleRenamePosition(position)
-                                                                }
-                                                            }}
-                                                            size="small"
-                                                            fullWidth
-                                                            sx={{'& .MuiInputBase-input': {fontSize: '0.875rem', lineHeight: 1.4}}}
-                                                        />
-                                                        {hasPositionChanges(position) && (
-                                                            <IconButton
-                                                                color="primary"
-                                                                size="small"
-                                                                aria-label={`Save position ${position.name}`}
-                                                                onClick={() => void handleRenamePosition(position)}
-                                                                disabled={savingPositionId === position.id || !((positionDrafts[position.id] ?? position.name).trim())}
-                                                            >
-                                                                <CheckIcon fontSize="small"/>
-                                                            </IconButton>
-                                                        )}
-                                                        <IconButton
-                                                            color="error"
-                                                            size="small"
-                                                            aria-label={`Delete position ${position.name}`}
-                                                            onClick={() => void handleDeletePosition(position)}
-                                                            disabled={deletingPositionId === position.id}
-                                                        >
-                                                            <DeleteOutlineOutlined fontSize="small"/>
-                                                        </IconButton>
-                                                    </Stack>
-                                                ) : (
-                                                    <Box
-                                                        sx={{
-                                                            width: '100%',
-                                                            border: '1px solid',
-                                                            borderColor: 'divider',
-                                                            borderRadius: 1,
-                                                            px: 1.5,
-                                                            py: 0.75,
-                                                            backgroundColor: 'background.paper',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            minHeight: 40,
-                                                        }}
-                                                    >
-                                                        <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>{position.name}</Typography>
-                                                    </Box>
-                                                )}
-                                            </ListItem>
-                                        ))
-                                    )}
-                                </List>
+                        <Box sx={{border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, backgroundColor: 'rgba(0,0,0,0.01)'}}>
+                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1}}>
+                                <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary'}}>Positions</Typography>
+                                <Stack direction="row" spacing={1} sx={{alignItems: 'center', flex: 1, justifyContent: 'flex-end'}}>
+                                    <TextField
+                                        size="small"
+                                        placeholder="Search"
+                                        value={positionSearch}
+                                        onChange={(event) => setPositionSearch(event.target.value)}
+                                        sx={{
+                                            minWidth: 180,
+                                            maxWidth: 220,
+                                            '& .MuiInputBase-root': {
+                                                backgroundColor: 'rgba(15, 23, 42, 0.45)',
+                                                height: 32,
+                                            },
+                                        }}
+                                    />
+                                    <IconButton
+                                        size="small"
+                                        color="primary"
+                                        aria-label="Add position"
+                                        onClick={() => setPositionInputOpen((value) => !value)}
+                                    >
+                                        <AddIcon/>
+                                    </IconButton>
+                                </Stack>
                             </Box>
 
-                            {isEditing && (
-                                <Box sx={{display: 'flex', justifyContent: 'flex-start'}}>
-                                    <Button
-                                        variant="outlined"
-                                        color="error"
+                            {positionInputOpen && (
+                                <Stack direction="row" spacing={1} sx={{mb: 2}}>
+                                    <TextField
                                         size="small"
-                                        onClick={() => setDeleteServiceDialogOpen(true)}
-                                        startIcon={<DeleteOutlineOutlined />}
-                                        sx={{
-                                            height: 36,
-                                            minHeight: 36,
-                                            paddingY: 0,
+                                        placeholder="New position"
+                                        value={newPositionName}
+                                        onChange={(event) => setNewPositionName(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault()
+                                                void handleAddPosition()
+                                            }
                                         }}
+                                        autoFocus
+                                        fullWidth
+                                    />
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => void handleAddPosition()}
+                                        disabled={isAddingPosition || !newPositionName.trim()}
                                     >
-                                        Delete service
+                                        {isAddingPosition ? 'Adding…' : 'Add'}
                                     </Button>
-                                </Box>
+                                </Stack>
                             )}
-                        </Stack>
-                    ) : null}
-                </DialogContent>
 
-            </Dialog>
+                            {positionError && (
+                                <Typography variant="body2" color="error" sx={{mb: 1}}>{positionError}</Typography>
+                            )}
 
-            <Dialog open={deleteServiceDialogOpen} onClose={() => setDeleteServiceDialogOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Delete service</DialogTitle>
-                <DialogContent>
-                    <Typography variant="body1">
-                        This will also delete all linked positions and will remove all the positions from staff.
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setDeleteServiceDialogOpen(false)} color="inherit">Cancel</Button>
-                    <Button onClick={() => void handleDeleteService()} color="error" variant="contained" disabled={isDeletingService}>
-                        {isDeletingService ? 'Deleting…' : 'Delete'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                            <List
+                                dense
+                                disablePadding
+                                sx={{
+                                    height: 320,
+                                    overflowY: 'auto',
+                                    pr: 0.5,
+                                }}
+                            >
+                                {filteredServicePositions.length === 0 ? (
+                                    <ListItem disablePadding>
+                                        <ListItemText primary={detailServicePositions.length === 0 ? 'No positions yet' : 'No matching positions'} secondary={detailServicePositions.length === 0 ? 'Use the plus button to add one.' : 'Try a different search.'}/>
+                                    </ListItem>
+                                ) : (
+                                    filteredServicePositions.map((position) => (
+                                        <ListItem key={position.id} disablePadding sx={{py: 0.5}}>
+                                            {isEditing ? (
+                                                <Stack direction="row" spacing={1} sx={{width: '100%', alignItems: 'center'}}>
+                                                    <TextField
+                                                        value={positionDrafts[position.id] ?? position.name}
+                                                        onChange={(event) =>
+                                                            setPositionDrafts((current) => ({
+                                                                ...current,
+                                                                [position.id]: event.target.value,
+                                                            }))
+                                                        }
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter' && hasPositionChanges(position)) {
+                                                                event.preventDefault()
+                                                                void handleRenamePosition(position)
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                        fullWidth
+                                                        sx={{'& .MuiInputBase-input': {fontSize: '0.875rem', lineHeight: 1.4}}}
+                                                    />
+                                                    {hasPositionChanges(position) && (
+                                                        <IconButton
+                                                            color="primary"
+                                                            size="small"
+                                                            aria-label={`Save position ${position.name}`}
+                                                            onClick={() => void handleRenamePosition(position)}
+                                                            disabled={savingPositionId === position.id || !((positionDrafts[position.id] ?? position.name).trim())}
+                                                        >
+                                                            <CheckIcon fontSize="small"/>
+                                                        </IconButton>
+                                                    )}
+                                                    <IconButton
+                                                        color="error"
+                                                        size="small"
+                                                        aria-label={`Delete position ${position.name}`}
+                                                        onClick={() => void handleDeletePosition(position)}
+                                                        disabled={deletingPositionId === position.id}
+                                                    >
+                                                        <DeleteOutlineOutlined fontSize="small"/>
+                                                    </IconButton>
+                                                </Stack>
+                                            ) : (
+                                                <Box
+                                                    sx={{
+                                                        width: '100%',
+                                                        border: '1px solid',
+                                                        borderColor: 'divider',
+                                                        borderRadius: 1,
+                                                        px: 1.5,
+                                                        py: 0.75,
+                                                        backgroundColor: 'background.paper',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        minHeight: 40,
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>{position.name}</Typography>
+                                                </Box>
+                                            )}
+                                        </ListItem>
+                                    ))
+                                )}
+                            </List>
+                        </Box>
+
+                        {isEditing && (
+                            <Box sx={{display: 'flex', justifyContent: 'flex-start'}}>
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    size="small"
+                                    onClick={() => setDeleteServiceDialogOpen(true)}
+                                    startIcon={<DeleteOutlineOutlined />}
+                                    sx={{
+                                        height: 36,
+                                        minHeight: 36,
+                                        paddingY: 0,
+                                    }}
+                                >
+                                    Delete service
+                                </Button>
+                            </Box>
+                        )}
+                    </Stack>
+                ) : null}
+            </DetailDialog>
+            <DetailDialog
+                open={deleteServiceDialogOpen}
+                onClose={() => setDeleteServiceDialogOpen(false)}
+                maxWidth="xs"
+                title="Delete service"
+                footer={
+                    <>
+                        <Button onClick={() => setDeleteServiceDialogOpen(false)} color="inherit">Cancel</Button>
+                        <Button onClick={() => void handleDeleteService()} color="error" variant="contained" disabled={isDeletingService}>
+                            {isDeletingService ? 'Deleting…' : 'Delete'}
+                        </Button>
+                    </>
+                }
+            >
+                <Typography variant="body1">
+                    This will also delete all linked positions and will remove all the positions from staff.
+                </Typography>
+            </DetailDialog>
         </AppShell>
     )
 }
