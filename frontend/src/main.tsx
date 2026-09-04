@@ -7,8 +7,12 @@ import { CssBaseline, ThemeProvider } from '@mui/material'
 import './index.css'
 import App from './App'
 import { theme } from './theme'
+import { setOnUnauthenticatedHandler } from './api/client'
 
 const queryClient = new QueryClient()
+setOnUnauthenticatedHandler(() => {
+  queryClient.setQueryData(['current-user'], null)
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -4,7 +4,7 @@ import {Box, CircularProgress, IconButton, Stack, TextField, Typography} from '@
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
 import EventCard from '../components/EventCard'
-import {getCurrentUser, getEvents, patchEvent} from '../api/client'
+import {getCurrentUser, getEvents, patchEvent, useActiveEventId} from '../api/client'
 
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
@@ -172,7 +172,7 @@ export function EventsPage() {
         refetchOnWindowFocus: false,
     })
 
-    const [activeEventId, setActiveEventId] = useState<string | null>(null)
+    const [activeEventId, setActiveEventId] = useActiveEventId()
     const queryClient = useQueryClient()
     const [editingEvent, setEditingEvent] = useState<EventItem | null>(null)
 
@@ -188,18 +188,8 @@ export function EventsPage() {
         }
     }
 
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem('active-event')
-            if (stored) setActiveEventId(stored)
-        } catch (e) {
-            // ignore localStorage access errors (e.g., SSR or blocked storage)
-        }
-    }, [])
-
     const setActive = (id: string) => {
         setActiveEventId(id)
-        try { localStorage.setItem('active-event', id) } catch {}
     }
 
     return (

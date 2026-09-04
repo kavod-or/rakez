@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 function apiUrl(path: string): string {
@@ -5,9 +7,9 @@ function apiUrl(path: string): string {
 }
 
 export type RoleEntry =
-  | { role: string; label: string; scope: 'global' }
-  | { role: string; label: string; scope: 'event'; target: { id: string; name: string } }
-  | { role: string; label: string; scope: 'service'; target: { id: number; name: string } }
+  | { id: number; role: string; label: string; scope: 'global' }
+  | { id: number; role: string; label: string; scope: 'event'; target: { id: string; name: string } }
+  | { id: number; role: string; label: string; scope: 'service'; target: { id: number; name: string } }
 
 export type CurrentUser = {
   id: number
@@ -19,6 +21,14 @@ export type CurrentUser = {
 }
 
 export type UserItem = CurrentUser
+
+export type UserInput = {
+  username: string
+  first_name: string
+  last_name: string
+  email: string
+  password?: string
+}
 
 export type EventItem = {
   id: number
@@ -78,6 +88,12 @@ async function readErrorMessage(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`
 }
 
+let onUnauthenticatedHandler: (() => void) | null = null
+
+export function setOnUnauthenticatedHandler(handler: (() => void) | null) {
+  onUnauthenticatedHandler = handler
+}
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(apiUrl(path), {
     ...init,
@@ -90,6 +106,9 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      onUnauthenticatedHandler?.()
+    }
     throw new Error(await readErrorMessage(response))
   }
 
@@ -119,12 +138,127 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return (await response.json()) as CurrentUser
 }
 
+export async function updateCurrentUser(user: Omit<UserInput, 'username'>): Promise<CurrentUser> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<CurrentUser>('/api/v1/auth/me/', {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(user.password ? user : {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+    }),
+  })
+}
+
 export async function getUsers(): Promise<UserItem[]> {
   return apiFetch<UserItem[]>('/api/v1/auth/users/')
 }
 
+export async function createUser(user: UserInput & {password: string}): Promise<UserItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<UserItem>('/api/v1/auth/users/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(user),
+  })
+}
+
+export async function patchUser(id: number, user: Omit<UserInput, 'username'>): Promise<UserItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<UserItem>(`/api/v1/auth/users/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(user.password ? user : {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+    }),
+  })
+}
+
+export type RoleScope = 'global' | 'event' | 'service'
+
+export async function addUserRole(userId: number, role: {scope: RoleScope; role: string; target_id?: string}): Promise<UserItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<UserItem>(`/api/v1/auth/users/${userId}/roles/`, {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(role),
+  })
+}
+
+export async function removeUserRole(userId: number, scope: RoleScope, roleId: number): Promise<UserItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<UserItem>(`/api/v1/auth/users/${userId}/roles/${scope}/${roleId}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+  })
+}
+
 export async function getEvents(): Promise<EventItem[]> {
   return apiFetch<EventItem[]>('/api/v1/events/')
+}
+
+export function getActiveEventId(): string | null {
+  try {
+    return localStorage.getItem('active-event')
+  } catch {
+    return null
+  }
+}
+
+export function setActiveEventId(id: string | null) {
+  try {
+    if (id) {
+      localStorage.setItem('active-event', id)
+    } else {
+      localStorage.removeItem('active-event')
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  window.dispatchEvent(new CustomEvent('active-event-changed', { detail: id }))
+}
+
+export function useActiveEventId(): [string | null, (id: string | null) => void] {
+  const [activeEventId, setActiveEventIdState] = useState<string | null>(() => getActiveEventId())
+
+  useEffect(() => {
+    const handleActiveEventChange = () => {
+      setActiveEventIdState(getActiveEventId())
+    }
+
+    window.addEventListener('active-event-changed', handleActiveEventChange)
+    window.addEventListener('storage', handleActiveEventChange)
+
+    return () => {
+      window.removeEventListener('active-event-changed', handleActiveEventChange)
+      window.removeEventListener('storage', handleActiveEventChange)
+    }
+  }, [])
+
+  const setAndSaveActiveEventId = (id: string | null) => {
+    setActiveEventId(id)
+    setActiveEventIdState(id)
+  }
+
+  return [activeEventId, setAndSaveActiveEventId]
 }
 
 export async function getStaff(): Promise<StaffItem[]> {

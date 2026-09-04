@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
@@ -15,4 +15,17 @@ class IsGlobalManager(BasePermission):
                 user=user,
                 role=GlobalRole.Role.GLOBAL_MANAGER,
             ).exists()
+        )
+
+
+class IsGlobalManagerOrReadOnly(IsGlobalManager):
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and (request.method in SAFE_METHODS or GlobalRole.objects.filter(
+                user=user,
+                role=GlobalRole.Role.GLOBAL_MANAGER,
+            ).exists())
         )

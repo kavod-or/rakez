@@ -3,7 +3,7 @@ import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Navigate, useLocation, useNavigate} from 'react-router-dom'
-import {Box, Button, Link, TextField} from '@mui/material'
+import {Alert, Box, Button, Link, TextField} from '@mui/material'
 
 import {getCurrentUser, login} from '../api/client'
 import {AppShell} from '../components/layout/AppShell'
@@ -65,6 +65,8 @@ export function LoginPage() {
         retry: false,
     })
 
+    const infoMessage = (location.state as {message?: string} | undefined)?.message
+
     if (isPending) return null
     if (user) return <Navigate to={redirectTo} replace/>
 
@@ -102,6 +104,12 @@ export function LoginPage() {
                             />
                         </Box>
                     </Box>
+
+                    {infoMessage && (
+                        <Alert severity="info" sx={{mt: 2, mb: 1}}>
+                            {infoMessage}
+                        </Alert>
+                    )}
 
                     <Box
                         component="form"

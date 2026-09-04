@@ -9,9 +9,10 @@ type PanelProps = {
     sx?: SxProps<Theme>,
     title?: ReactNode,
     titleSx?: SxProps<Theme>,
+    titleActions?: ReactNode,
 }
 
-export function Panel({children, sx, title, titleSx}: PanelProps) {
+export function Panel({children, sx, title, titleSx, titleActions}: PanelProps) {
     return (
         <Paper
             elevation={0}
@@ -27,15 +28,24 @@ export function Panel({children, sx, title, titleSx}: PanelProps) {
                 ...sx,
             }}
         >
-            {title && (
+            {(title || titleActions) && (
                 <Box sx={{
                     px: {xs: 1, sm: 2},
                     py: 0.5,
                     minHeight: 48,
                     display: 'flex',
                     alignItems: 'center',
+                    gap: 2,
+                    flexWrap: 'wrap',
                 }}>
-                    <Typography variant="h6" sx={{fontWeight: 600, ...titleSx}}>{title}</Typography>
+                    <Box sx={{display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minWidth: 0}}>
+                        {typeof title === 'string' ? (
+                            <Typography variant="h6" sx={{fontWeight: 600, ...titleSx}}>{title}</Typography>
+                        ) : (
+                            title
+                        )}
+                        {titleActions}
+                    </Box>
                 </Box>
             )}
 
