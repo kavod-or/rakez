@@ -10,9 +10,10 @@ type PanelProps = {
     title?: ReactNode,
     titleSx?: SxProps<Theme>,
     titleActions?: ReactNode,
+    rightDrawer?: ReactNode,
 }
 
-export function Panel({children, sx, title, titleSx, titleActions}: PanelProps) {
+export function Panel({children, sx, title, titleSx, titleActions, rightDrawer}: PanelProps) {
     return (
         <Paper
             elevation={0}
@@ -49,7 +50,10 @@ export function Panel({children, sx, title, titleSx, titleActions}: PanelProps) 
                 </Box>
             )}
 
-            <Stack spacing={3} sx={{flexGrow: 1}}>{children}</Stack>
+            <Box sx={{display: 'flex', flexGrow: 1, minHeight: 0, minWidth: 0}}>
+                <Stack spacing={3} sx={{flexGrow: 1, minWidth: 0}}>{children}</Stack>
+                {rightDrawer}
+            </Box>
         </Paper>
     )
 }

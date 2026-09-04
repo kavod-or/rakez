@@ -94,7 +94,7 @@ const dialogIconButtonSx = {
     '&:hover': {backgroundColor: 'action.hover'},
 }
 
-function StaffDetailDialog({
+export function StaffDetailDialog({
     staff,
     services,
     positions,

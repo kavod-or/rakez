@@ -3,7 +3,7 @@ import {Box, Chip, FormControl, MenuItem, Select, Typography} from '@mui/materia
 import {getEvents, useActiveEventId} from '../api/client'
 import type {EventItem} from '../api/client'
 
-export function ActiveEventSelector() {
+export function ActiveEventSelector({fullWidth = false}: {fullWidth?: boolean}) {
     const {data: events = [], isLoading} = useQuery<EventItem[]>({
         queryKey: ['events'],
         queryFn: getEvents,
@@ -17,7 +17,7 @@ export function ActiveEventSelector() {
     const activeEvent = events.find((e) => String(e.public_id || e.id) === activeEventId)
 
     return (
-        <FormControl size="small" sx={{minWidth: 180, maxWidth: 320}}>
+        <FormControl size="small" fullWidth={fullWidth} sx={fullWidth ? undefined : {minWidth: 180, maxWidth: 320}}>
             <Select
                 value={activeEvent ? String(activeEvent.public_id || activeEvent.id) : ''}
                 onChange={(e) => setActiveEventId(e.target.value || null)}
