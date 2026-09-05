@@ -19,6 +19,7 @@ import {EventDetails} from '../EventDetails'
 import {usePlannerTimeRange} from '../../api/client'
 
 const OPEN_WIDTH = '22%'
+const OPEN_MAX_WIDTH = 375
 const CLOSED_WIDTH = 48
 const SETTINGS_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-settings-expanded'
 const STAFF_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-staff-expanded'
@@ -72,6 +73,7 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
                 minHeight: 0,
                 width: open ? OPEN_WIDTH : CLOSED_WIDTH,
                 minWidth: open ? 240 : CLOSED_WIDTH,
+                maxWidth: open ? OPEN_MAX_WIDTH : CLOSED_WIDTH,
                 boxSizing: 'border-box',
                 display: 'flex',
                 flexDirection: 'column',

@@ -1,13 +1,33 @@
 import {useEffect, useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
-import {Box, Button, Stack, TextField, Typography} from '@mui/material'
+import {Avatar, Box, Button, IconButton, MenuItem, Stack, TextField, Typography} from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import AddIcon from '@mui/icons-material/Add'
+import RemoveIcon from '@mui/icons-material/Remove'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import {AppShell} from '../components/layout/AppShell'
 import {Menu} from '../components/layout/Menu'
 import {Panel} from '../components/layout/Panel'
 import {ContentArea} from '../components/layout/ContentArea'
 import {PanelDrawer} from '../components/layout/PanelDrawer'
-import {createShift, deleteShift, getEvents, getServices, getShifts, patchShift, useActiveEventId, useActiveServiceId, usePlannerTimeRange} from '../api/client'
-import type {EventItem, PlannerTimeRange, ServiceItem, ShiftItem} from '../api/client'
+import {createShift, createShiftAssignment, createShiftPosition, deleteShift, deleteShiftAssignment, deleteShiftPosition, getEvents, getPositions, getServices, getShiftAssignments, getShiftPositions, getShifts, getStaff, patchShift, patchShiftPosition, patchShiftPositionOrder, useActiveEventId, useActiveServiceId, usePlannerTimeRange} from '../api/client'
+import type {EventItem, PlannerTimeRange, PositionItem, ServiceItem, ShiftAssignmentItem, ShiftItem, ShiftPositionItem, StaffItem} from '../api/client'
+
+const fallbackServiceColor = '#3D7A6C'
+
+function serviceColor(serviceId: number, services: ServiceItem[]) {
+    return services.find((service) => service.id === serviceId)?.color ?? fallbackServiceColor
+}
+
+function serviceTextColor(background: string) {
+    const match = /^#([0-9A-Fa-f]{6})$/.exec(background)
+    if (!match) return '#E5EEFC'
+    const value = Number.parseInt(match[1], 16)
+    const red = (value >> 16) & 0xff
+    const green = (value >> 8) & 0xff
+    const blue = value & 0xff
+    return (red * 299 + green * 587 + blue * 114) / 1000 > 150 ? '#07111F' : '#E5EEFC'
+}
 import {DetailDialog} from '../components/ui/DetailDialog'
 
 const panelDrawerStorageKey = 'dashboard-panel-drawer-open'
@@ -23,20 +43,34 @@ function formatDuration(start: number, end: number) {
     return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
 }
 
-function ShiftDetailsDialog({shift, event, services, onClose}: {shift: ShiftItem | null; event: EventItem; services: ServiceItem[]; onClose: () => void}) {
-    const queryClient = useQueryClient()
-    const service = services.find((item) => item.id === shift?.service)
-    const deleteMutation = useMutation({
-        mutationFn: deleteShift,
-        onSuccess: async () => { await queryClient.invalidateQueries({queryKey: ['shifts']}); onClose() },
-    })
-    return <DetailDialog open={shift !== null} onClose={onClose} title="Shift details" footer={<><Button color="error" onClick={() => shift && deleteMutation.mutate(shift.id)} disabled={deleteMutation.isPending}>Delete shift</Button><Button onClick={onClose}>Close</Button></>}>
-        {shift && <Stack spacing={2}>
-            <TextField label="Service" value={service?.name ?? 'Unknown service'} slotProps={{input: {readOnly: true}}} fullWidth />
-            <TextField label="Start" value={new Intl.DateTimeFormat(undefined, {dateStyle: 'medium', timeStyle: 'short', timeZone: event.timezone}).format(new Date(shift.start))} slotProps={{input: {readOnly: true}}} fullWidth />
-            <TextField label="End" value={new Intl.DateTimeFormat(undefined, {dateStyle: 'medium', timeStyle: 'short', timeZone: event.timezone}).format(new Date(shift.end))} slotProps={{input: {readOnly: true}}} fullWidth />
-        </Stack>}
-    </DetailDialog>
+function ShiftDetailsPanel({shift, event, services, positions, staff, shiftPositions, shiftAssignments, isDeleting, isAddingPosition, isChangingPositionSeats, isAssigningStaff, isRemovingStaff, isReorderingPositions, onClose, onDelete, onAddPosition, onChangePositionSeats, onAssignStaff, onRemoveStaff, onReorderPositions}: {shift: ShiftItem; event: EventItem; services: ServiceItem[]; positions: PositionItem[]; staff: StaffItem[]; shiftPositions: ShiftPositionItem[]; shiftAssignments: ShiftAssignmentItem[]; isDeleting: boolean; isAddingPosition: boolean; isChangingPositionSeats: boolean; isAssigningStaff: boolean; isRemovingStaff: boolean; isReorderingPositions: boolean; onClose: () => void; onDelete: (shift: ShiftItem) => void; onAddPosition: (positionId: number) => void; onChangePositionSeats: (shiftPosition: ShiftPositionItem, amount: number, assignmentId?: number) => void; onAssignStaff: (shiftPositionId: number, staffId: number) => void; onRemoveStaff: (assignmentId: number) => void; onReorderPositions: (sourceId: number, targetId: number) => void}) {
+    const [positionId, setPositionId] = useState<number | ''>('')
+    const [draggedPositionId, setDraggedPositionId] = useState<number | null>(null)
+    const [draggedStaffId, setDraggedStaffId] = useState<number | null>(null)
+    useEffect(() => {
+        const handleStaffDragging = (event: Event) => setDraggedStaffId((event as CustomEvent<number | null>).detail)
+        window.addEventListener('staff-dragging', handleStaffDragging)
+        return () => window.removeEventListener('staff-dragging', handleStaffDragging)
+    }, [])
+    const service = services.find((item) => item.id === shift.service)
+    const assignedShiftPositions = shiftPositions.filter((item) => item.shift === shift.id)
+    const assignedPositionIds = assignedShiftPositions.map((item) => item.position)
+    const availablePositions = positions.filter((position) => position.service === shift.service && !assignedPositionIds.includes(position.id))
+    const assignmentsByPosition = (shiftPositionId: number) => shiftAssignments.filter((assignment) => assignment.shift_position === shiftPositionId)
+    const staffMember = (staffId: number) => staff.find((item) => item.id === staffId)
+    const staffName = (staffId: number) => { const member = staffMember(staffId); return member ? `${member.firstname} ${member.lastname}` : 'Unknown staff' }
+    return <Box sx={{width: 375, flexShrink: 0, ml: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper', alignSelf: 'stretch', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
+        <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5}}><Typography variant="subtitle2" sx={{fontWeight: 700}}>Shift details</Typography><IconButton aria-label="Close shift details" size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton></Box>
+        <Stack spacing={1.25} sx={{flexGrow: 1, minHeight: 0}}>
+            <Typography variant="body2" sx={{fontWeight: 600}}>{service?.name ?? 'Unknown service'}</Typography><Typography variant="caption" color="text.secondary">{new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'short', timeZone: event.timezone}).format(new Date(shift.start))} – {new Intl.DateTimeFormat(undefined, {dateStyle: 'short', timeStyle: 'short', timeZone: event.timezone}).format(new Date(shift.end))} · {formatDuration(new Date(shift.start).getTime(), new Date(shift.end).getTime())}</Typography>
+            <Box sx={{pt: 1, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column'}}>
+                <Typography variant="subtitle2" sx={{fontWeight: 700, mb: 1}}>Positions</Typography>
+                {availablePositions.length > 0 && <Stack direction="row" spacing={1} sx={{mb: assignedShiftPositions.length > 0 ? 1 : 0}}><TextField select size="small" label="Add position" value={positionId} onChange={(event) => setPositionId(event.target.value === '' ? '' : Number(event.target.value))} fullWidth><MenuItem value="">Select position</MenuItem>{availablePositions.map((position) => <MenuItem key={position.id} value={position.id}>{position.name}</MenuItem>)}</TextField><Button variant="outlined" size="small" disabled={positionId === '' || isAddingPosition} onClick={() => { if (positionId !== '') { onAddPosition(positionId); setPositionId('') } }}>Add</Button></Stack>}
+                {assignedShiftPositions.length > 0 && <Stack spacing={1} sx={{flexGrow: 1, minHeight: 0, overflowY: 'auto'}}>{assignedShiftPositions.map((shiftPosition) => { const assignments = assignmentsByPosition(shiftPosition.id); return <Box key={shiftPosition.id} draggable={!isReorderingPositions} onDragStart={(event) => { if (event.target !== event.currentTarget) return; setDraggedPositionId(shiftPosition.id); event.dataTransfer.setData('application/x-rakez-shift-position-id', String(shiftPosition.id)); event.dataTransfer.effectAllowed = 'move' }} onDragEnd={() => setDraggedPositionId(null)} onDragOver={(event) => { if (event.dataTransfer.types.includes('application/x-rakez-shift-position-id')) event.preventDefault() }} onDrop={(event) => { event.preventDefault(); const sourceId = Number(event.dataTransfer.getData('application/x-rakez-shift-position-id')); if (!isReorderingPositions && Number.isInteger(sourceId) && sourceId !== shiftPosition.id) onReorderPositions(sourceId, shiftPosition.id) }} sx={{border: '1px solid', borderColor: draggedPositionId !== null && draggedPositionId !== shiftPosition.id ? 'primary.main' : 'divider', borderRadius: 1.5, p: 1, cursor: isReorderingPositions ? 'progress' : 'grab', opacity: draggedPositionId === shiftPosition.id ? 0.55 : 1, transition: 'border-color 120ms ease, opacity 120ms ease'}}><Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75}}><Stack direction="row" spacing={0.5} sx={{alignItems: 'center', minWidth: 0}}><Box aria-label="Drag position to reorder" sx={{color: 'text.secondary', fontSize: '1.1rem', lineHeight: 1, cursor: 'grab'}}>⠿</Box><Typography variant="body2" sx={{fontWeight: 600}}>{positions.find((position) => position.id === shiftPosition.position)?.name ?? 'Unknown position'}</Typography></Stack><Stack direction="row" spacing={0.25}><IconButton aria-label="Remove seat" size="small" disabled={isChangingPositionSeats} onClick={() => onChangePositionSeats(shiftPosition, shiftPosition.amount - 1, assignments.length === shiftPosition.amount ? assignments.at(-1)?.id : undefined)}><RemoveIcon fontSize="small" /></IconButton><IconButton aria-label="Add seat" size="small" disabled={isChangingPositionSeats} onClick={() => onChangePositionSeats(shiftPosition, shiftPosition.amount + 1)}><AddIcon fontSize="small" /></IconButton></Stack></Box><Box sx={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 0.5}}>{Array.from({length: shiftPosition.amount}, (_, index) => { const assignment = assignments[index]; const member = assignment ? staffMember(assignment.staff) : null; return <Box key={assignment?.id ?? index} aria-label={assignment ? staffName(assignment.staff) : 'Drop staff here'} draggable={Boolean(assignment)} onDragStart={(event) => { if (assignment) { event.dataTransfer.setData('application/x-rakez-shift-assignment-id', String(assignment.id)); event.dataTransfer.effectAllowed = 'move' } }} onDragOver={(event) => { if (!assignment) event.preventDefault() }} onDrop={(event) => { event.preventDefault(); const staffId = Number(event.dataTransfer.getData('application/x-rakez-staff-id')); if (!assignment && !isAssigningStaff && staff.some((member) => member.id === staffId)) onAssignStaff(shiftPosition.id, staffId) }} sx={{width: '100%', minHeight: 50, px: 0.75, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', textAlign: 'left', border: assignment ? '1px solid rgba(148, 163, 184, 0.16)' : '1px dashed', borderColor: assignment ? 'rgba(148, 163, 184, 0.16)' : draggedStaffId !== null ? 'primary.main' : 'divider', borderRadius: 0.75, bgcolor: assignment ? 'rgba(15, 23, 42, 0.45)' : draggedStaffId !== null ? 'action.selected' : 'action.hover', color: 'text.secondary', fontSize: '0.7rem', cursor: assignment ? 'default' : 'copy', transition: 'border-color 120ms ease, background-color 120ms ease'}}>{assignment ? <Stack direction="row" spacing={0.75} sx={{alignItems: 'center', minWidth: 0}}><Avatar sx={{width: 28, height: 28, fontSize: '0.7rem', backgroundColor: 'primary.main', color: 'primary.contrastText', fontWeight: 700}}>{member ? `${member.firstname.charAt(0)}${member.lastname.charAt(0)}`.toUpperCase() : '?'}</Avatar><Typography variant="caption" sx={{fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{staffName(assignment.staff)}</Typography></Stack> : 'Drop staff'}</Box> })}</Box></Box>})}</Stack>}
+            </Box>
+        </Stack>
+        <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto', pt: 1}}><Button color="error" size="small" onClick={() => onDelete(shift)} disabled={isDeleting}>Delete shift</Button><Box aria-label="Remove staff assignment" onDragOver={(event) => { if (event.dataTransfer.types.includes('application/x-rakez-shift-assignment-id')) event.preventDefault() }} onDrop={(event) => { event.preventDefault(); const assignmentId = Number(event.dataTransfer.getData('application/x-rakez-shift-assignment-id')); if (!isRemovingStaff && Number.isInteger(assignmentId) && assignmentId > 0) onRemoveStaff(assignmentId) }} sx={{width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed', borderColor: 'error.main', borderRadius: 1, color: 'error.main', cursor: 'copy'}}><DeleteOutlineIcon fontSize="small" /></Box></Box>
+    </Box>
 }
 
 function ShiftCreationDialog({range, event, services, activeServiceId, onClose}: {range: TimeRange | null; event: EventItem; services: ServiceItem[]; activeServiceId: number | null; onClose: () => void}) {
@@ -62,7 +96,7 @@ function ShiftCreationDialog({range, event, services, activeServiceId, onClose}:
     </DetailDialog>
 }
 
-function ShiftTimetable({event, shifts, services, showServiceNames, timeRange, onSelect, onMove, onOpenShift}: {event: EventItem; shifts: ShiftItem[]; services: ServiceItem[]; showServiceNames: boolean; timeRange: PlannerTimeRange; onSelect: (range: TimeRange) => void; onMove: (shift: ShiftItem, start: number, end: number) => void; onOpenShift: (shift: ShiftItem) => void}) {
+function ShiftTimetable({event, shifts, services, showServiceNames, selectedShiftId, timeRange, onSelect, onMove, onOpenShift}: {event: EventItem; shifts: ShiftItem[]; services: ServiceItem[]; showServiceNames: boolean; selectedShiftId: number | null; timeRange: PlannerTimeRange; onSelect: (range: TimeRange) => void; onMove: (shift: ShiftItem, start: number, end: number) => void; onOpenShift: (shift: ShiftItem) => void}) {
     const dragColumnRef = useRef<HTMLDivElement>(null)
     const shiftPointerDown = useRef<{x: number; y: number} | null>(null)
     const [dragStart, setDragStart] = useState<number | null>(null)
@@ -217,8 +251,8 @@ function ShiftTimetable({event, shifts, services, showServiceNames, timeRange, o
                 {availableStart > 0 && <Box onMouseDown={(e) => e.stopPropagation()} sx={{position: 'absolute', top: 0, height: `${availableStart}%`, left: 0, right: 0, zIndex: 2, bgcolor: 'action.disabledBackground', opacity: 0.8, cursor: 'not-allowed'}} />}
                 {availableEnd < 100 && <Box onMouseDown={(e) => e.stopPropagation()} sx={{position: 'absolute', top: `${availableEnd}%`, bottom: 0, left: 0, right: 0, zIndex: 2, bgcolor: 'action.disabledBackground', opacity: 0.8, cursor: 'not-allowed'}} />}
                 {preview && dayStartFor(preview.start) === dayKey && <Box sx={{position: 'absolute', top: `${topPercent(preview.start)}%`, height: `${topPercent(preview.end) - topPercent(preview.start)}%`, left: 0, right: 0, zIndex: 1, bgcolor: 'primary.main', opacity: 0.24, borderTop: 2, borderBottom: 2, borderColor: 'primary.main', pointerEvents: 'none'}} />}
-                {activeDragRange && dayStartFor(activeDragRange.start) === dayKey && <Box sx={{position: 'absolute', zIndex: 4, top: `${topPercent(activeDragRange.start)}%`, height: `${topPercent(activeDragRange.end) - topPercent(activeDragRange.start)}%`, left: 10, right: 10, minHeight: 2, px: 1, py: 0.75, boxSizing: 'border-box', bgcolor: 'secondary.main', color: 'secondary.contrastText', borderRadius: 1.25, boxShadow: 5, opacity: 0.9, pointerEvents: 'none', transform: 'scale(1.02)', transition: 'top 80ms ease, height 80ms ease'}}><Typography variant="caption" sx={{display: 'block', fontWeight: 700}}>{activeDragShift ? shiftLabel(activeDragShift) : 'Shift'} <Box component="span" sx={{fontWeight: 400, opacity: 0.8}}>{formatDuration(activeDragRange.start, activeDragRange.end)}</Box></Typography><Typography variant="caption">{formatTime(activeDragRange.start, event.timezone)} – {formatTime(activeDragRange.end, event.timezone)}</Typography></Box>}
-                {layoutShifts(dayKey).filter(({shift}) => shift.id !== activeDragShiftId).map(({shift, start, end, lane, laneCount}) => <Box key={shift.id} onMouseMove={(e) => { const bounds = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.cursor = e.clientY - bounds.top < 8 || bounds.bottom - e.clientY < 8 ? 'ns-resize' : 'grab' }} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); dragColumnRef.current = e.currentTarget.parentElement as HTMLDivElement; const bounds = e.currentTarget.getBoundingClientRect(); const edge = e.clientY - bounds.top < 8 ? 'start' : bounds.bottom - e.clientY < 8 ? 'end' : null; setDragStart(start); setDragCurrent(edge === 'end' ? end : start); setDragDayKey(dayKey); if (edge) setResizingShift({shift, edge}); else { shiftPointerDown.current = {x: e.clientX, y: e.clientY}; setMovingShift(shift) } }} sx={{position: 'absolute', zIndex: 3, top: `${topPercent(start)}%`, height: `${topPercent(end) - topPercent(start)}%`, left: `calc(${(lane / laneCount) * 100}% + 8px)`, width: `calc(${100 / laneCount}% - 16px)`, minHeight: 2, px: 1, py: 0.75, boxSizing: 'border-box', bgcolor: 'secondary.main', color: 'secondary.contrastText', borderRadius: 1.25, boxShadow: 2, overflow: 'hidden', cursor: 'grab'}}><Typography variant="caption" sx={{display: 'block', fontWeight: 700}}>{shiftLabel(shift)} <Box component="span" sx={{fontWeight: 400, opacity: 0.8}}>{formatDuration(start, end)}</Box></Typography><Typography variant="caption">{formatTime(start, event.timezone)} – {formatTime(end, event.timezone)}</Typography></Box>) }
+                {activeDragRange && dayStartFor(activeDragRange.start) === dayKey && <Box sx={{position: 'absolute', zIndex: 4, top: `${topPercent(activeDragRange.start)}%`, height: `${topPercent(activeDragRange.end) - topPercent(activeDragRange.start)}%`, left: 10, right: 10, minHeight: 2, px: 1, py: 0.75, boxSizing: 'border-box', bgcolor: activeDragShift ? serviceColor(activeDragShift.service, services) : 'secondary.main', color: activeDragShift ? serviceTextColor(serviceColor(activeDragShift.service, services)) : 'secondary.contrastText', borderRadius: 1.25, boxShadow: 5, opacity: 0.9, pointerEvents: 'none', transform: 'scale(1.02)', transition: 'top 80ms ease, height 80ms ease'}}><Typography variant="caption" sx={{display: 'block', fontWeight: 700}}>{activeDragShift ? shiftLabel(activeDragShift) : 'Shift'} <Box component="span" sx={{fontWeight: 400, opacity: 0.8}}>{formatDuration(activeDragRange.start, activeDragRange.end)}</Box></Typography><Typography variant="caption">{formatTime(activeDragRange.start, event.timezone)} – {formatTime(activeDragRange.end, event.timezone)}</Typography></Box>}
+                {layoutShifts(dayKey).filter(({shift}) => shift.id !== activeDragShiftId).map(({shift, start, end, lane, laneCount}) => { const background = serviceColor(shift.service, services); return <Box key={shift.id} onMouseMove={(e) => { const bounds = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.cursor = e.clientY - bounds.top < 8 || bounds.bottom - e.clientY < 8 ? 'ns-resize' : 'grab' }} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); dragColumnRef.current = e.currentTarget.parentElement as HTMLDivElement; const bounds = e.currentTarget.getBoundingClientRect(); const edge = e.clientY - bounds.top < 8 ? 'start' : bounds.bottom - e.clientY < 8 ? 'end' : null; setDragStart(start); setDragCurrent(edge === 'end' ? end : start); setDragDayKey(dayKey); if (edge) setResizingShift({shift, edge}); else { shiftPointerDown.current = {x: e.clientX, y: e.clientY}; setMovingShift(shift) } }} sx={{position: 'absolute', zIndex: 3, top: `${topPercent(start)}%`, height: `${topPercent(end) - topPercent(start)}%`, left: `calc(${(lane / laneCount) * 100}% + 8px)`, width: `calc(${100 / laneCount}% - 16px)`, minHeight: 2, px: 1, py: 0.75, boxSizing: 'border-box', bgcolor: background, color: serviceTextColor(background), borderRadius: 1.25, boxShadow: 2, overflow: 'hidden', cursor: 'grab', opacity: selectedShiftId !== null && selectedShiftId !== shift.id ? 0.38 : 1, transition: 'opacity 150ms ease'}}><Typography variant="caption" sx={{display: 'block', fontWeight: 700}}>{shiftLabel(shift)} <Box component="span" sx={{fontWeight: 400, opacity: 0.8}}>{formatDuration(start, end)}</Box></Typography><Typography variant="caption">{formatTime(start, event.timezone)} – {formatTime(end, event.timezone)}</Typography></Box> }) }
             </Box>
             })}
         </Box>
@@ -231,6 +265,10 @@ export function DashboardPage() {
     const [selectedShift, setSelectedShift] = useState<ShiftItem | null>(null)
     const {data: events = []} = useQuery<EventItem[]>({queryKey: ['events'], queryFn: getEvents, retry: false, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false})
     const {data: services = []} = useQuery<ServiceItem[]>({queryKey: ['services'], queryFn: getServices, retry: false, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false})
+    const {data: positions = []} = useQuery<PositionItem[]>({queryKey: ['positions'], queryFn: getPositions, retry: false})
+    const {data: staff = []} = useQuery<StaffItem[]>({queryKey: ['staff'], queryFn: getStaff, retry: false})
+    const {data: shiftPositions = []} = useQuery<ShiftPositionItem[]>({queryKey: ['shift-positions'], queryFn: getShiftPositions, retry: false})
+    const {data: shiftAssignments = []} = useQuery<ShiftAssignmentItem[]>({queryKey: ['shift-assignments'], queryFn: getShiftAssignments, retry: false})
     const {data: allShifts = []} = useQuery<ShiftItem[]>({queryKey: ['shifts'], queryFn: getShifts, retry: false})
     const [activeEventId] = useActiveEventId(); const [activeServiceId] = useActiveServiceId(); const [plannerTimeRange] = usePlannerTimeRange()
     const activeEvent = events.find((event) => String(event.public_id || event.id) === activeEventId)
@@ -242,8 +280,41 @@ export function DashboardPage() {
         mutationFn: ({shift, start, end}: {shift: ShiftItem; start: number; end: number}) => patchShift(shift.id, {start: new Date(start).toISOString(), end: new Date(end).toISOString()}),
         onSuccess: () => queryClient.invalidateQueries({queryKey: ['shifts']}),
     })
+    const deleteShiftMutation = useMutation({
+        mutationFn: deleteShift,
+        onSuccess: async () => { await queryClient.invalidateQueries({queryKey: ['shifts']}); setSelectedShift(null) },
+    })
+    const addShiftPositionMutation = useMutation({
+        mutationFn: ({shiftId, positionId}: {shiftId: number; positionId: number}) => createShiftPosition(shiftId, positionId),
+        onSuccess: () => queryClient.invalidateQueries({queryKey: ['shift-positions']}),
+    })
+    const changeShiftPositionSeatsMutation = useMutation({
+        mutationFn: async ({shiftPosition, amount, assignmentId}: {shiftPosition: ShiftPositionItem; amount: number; assignmentId?: number}) => { if (assignmentId) await deleteShiftAssignment(assignmentId); if (amount === 0) await deleteShiftPosition(shiftPosition.id); else await patchShiftPosition(shiftPosition.id, amount) },
+        onSuccess: async () => { await queryClient.invalidateQueries({queryKey: ['shift-positions']}); await queryClient.invalidateQueries({queryKey: ['shift-assignments']}) },
+    })
+    const assignStaffMutation = useMutation({
+        mutationFn: ({shiftPositionId, staffId}: {shiftPositionId: number; staffId: number}) => createShiftAssignment(shiftPositionId, staffId),
+        onSuccess: () => queryClient.invalidateQueries({queryKey: ['shift-assignments']}),
+    })
+    const removeStaffMutation = useMutation({
+        mutationFn: deleteShiftAssignment,
+        onSuccess: () => queryClient.invalidateQueries({queryKey: ['shift-assignments']}),
+    })
+    const reorderPositionsMutation = useMutation({
+        mutationFn: async ({sourceId, targetId}: {sourceId: number; targetId: number}) => {
+            if (!selectedShift) return
+            const ordered = shiftPositions.filter((item) => item.shift === selectedShift.id).sort((left, right) => left.sort_order - right.sort_order)
+            const sourceIndex = ordered.findIndex((item) => item.id === sourceId)
+            const targetIndex = ordered.findIndex((item) => item.id === targetId)
+            if (sourceIndex < 0 || targetIndex < 0) return
+            const [source] = ordered.splice(sourceIndex, 1)
+            ordered.splice(targetIndex, 0, source)
+            await Promise.all(ordered.map((item, index) => item.sort_order === index + 1 ? Promise.resolve() : patchShiftPositionOrder(item.id, index + 1)))
+        },
+        onSuccess: () => queryClient.invalidateQueries({queryKey: ['shift-positions']}),
+    })
     const toggleDrawer = () => setDrawerOpen((prev) => { const next = !prev; window.localStorage.setItem(panelDrawerStorageKey, next ? '1' : '0'); return next })
     return <AppShell maxWidth={false}><Menu/><ContentArea><Panel title={title} rightDrawer={<PanelDrawer open={drawerOpen} onToggle={toggleDrawer}/>} sx={{height: '100%'}}>
-        {activeEvent ? <><ShiftTimetable event={activeEvent} shifts={shifts} services={services} showServiceNames={activeServiceId === null} timeRange={plannerTimeRange} onSelect={setSelection} onMove={(shift, start, end) => moveShiftMutation.mutate({shift, start, end})} onOpenShift={setSelectedShift}/><ShiftCreationDialog key={selection ? `${selection.start}-${selection.end}` : 'closed'} range={selection} event={activeEvent} services={services} activeServiceId={activeServiceId} onClose={() => setSelection(null)}/><ShiftDetailsDialog shift={selectedShift} event={activeEvent} services={services} onClose={() => setSelectedShift(null)}/></> : <Typography color="text.secondary">Select an event to plan shifts.</Typography>}
+        {activeEvent ? <><Box sx={{display: 'flex', flexGrow: 1, minHeight: 0, minWidth: 0}}><ShiftTimetable event={activeEvent} shifts={shifts} services={services} showServiceNames={activeServiceId === null} selectedShiftId={selectedShift?.id ?? null} timeRange={plannerTimeRange} onSelect={setSelection} onMove={(shift, start, end) => moveShiftMutation.mutate({shift, start, end})} onOpenShift={setSelectedShift}/>{selectedShift && <ShiftDetailsPanel key={selectedShift.id} shift={selectedShift} event={activeEvent} services={services} positions={positions} staff={staff} shiftPositions={shiftPositions} shiftAssignments={shiftAssignments} isDeleting={deleteShiftMutation.isPending} isAddingPosition={addShiftPositionMutation.isPending} isChangingPositionSeats={changeShiftPositionSeatsMutation.isPending} isAssigningStaff={assignStaffMutation.isPending} isRemovingStaff={removeStaffMutation.isPending} isReorderingPositions={reorderPositionsMutation.isPending} onClose={() => setSelectedShift(null)} onDelete={(shift) => deleteShiftMutation.mutate(shift.id)} onAddPosition={(positionId) => addShiftPositionMutation.mutate({shiftId: selectedShift.id, positionId})} onChangePositionSeats={(shiftPosition, amount, assignmentId) => changeShiftPositionSeatsMutation.mutate({shiftPosition, amount, assignmentId})} onAssignStaff={(shiftPositionId, staffId) => assignStaffMutation.mutate({shiftPositionId, staffId})} onRemoveStaff={(assignmentId) => removeStaffMutation.mutate(assignmentId)} onReorderPositions={(sourceId, targetId) => reorderPositionsMutation.mutate({sourceId, targetId})}/>}</Box><ShiftCreationDialog key={selection ? `${selection.start}-${selection.end}` : 'closed'} range={selection} event={activeEvent} services={services} activeServiceId={activeServiceId} onClose={() => setSelection(null)}/></> : <Typography color="text.secondary">Select an event to plan shifts.</Typography>}
     </Panel></ContentArea></AppShell>
 }

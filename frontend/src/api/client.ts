@@ -58,6 +58,7 @@ export type StaffItem = {
 export type ServiceItem = {
   id: number
   name: string
+  color: string
 }
 
 export type PositionItem = {
@@ -72,6 +73,22 @@ export type ShiftItem = {
   event: number
   start: string
   end: string
+}
+
+export type ShiftPositionItem = {
+  id: number
+  shift: number
+  position: number
+  amount: number
+  sort_order: number
+}
+
+export type ShiftAssignmentItem = {
+  id: number
+  shift_position: number
+  staff: number
+  is_qualified: boolean
+  warnings: string[]
 }
 
 export type LoginResponse = {
@@ -341,6 +358,84 @@ export async function getShifts(): Promise<ShiftItem[]> {
   return apiFetch<ShiftItem[]>('/api/v1/shifts/')
 }
 
+export async function getShiftPositions(): Promise<ShiftPositionItem[]> {
+  return apiFetch<ShiftPositionItem[]>('/api/v1/shift-positions/')
+}
+
+export async function createShiftPosition(shift: number, position: number): Promise<ShiftPositionItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftPositionItem>('/api/v1/shift-positions/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({shift, position, amount: 1}),
+  })
+}
+
+export async function patchShiftPosition(id: number, amount: number): Promise<ShiftPositionItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftPositionItem>(`/api/v1/shift-positions/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({amount}),
+  })
+}
+
+export async function patchShiftPositionOrder(id: number, sortOrder: number): Promise<ShiftPositionItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftPositionItem>(`/api/v1/shift-positions/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({sort_order: sortOrder}),
+  })
+}
+
+export async function deleteShiftPosition(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/shift-positions/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+  })
+}
+
+export async function getShiftAssignments(): Promise<ShiftAssignmentItem[]> {
+  return apiFetch<ShiftAssignmentItem[]>('/api/v1/shift-assignments/')
+}
+
+export async function createShiftAssignment(shiftPosition: number, staff: number): Promise<ShiftAssignmentItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftAssignmentItem>('/api/v1/shift-assignments/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify({shift_position: shiftPosition, staff}),
+  })
+}
+
+export async function deleteShiftAssignment(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/shift-assignments/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+  })
+}
+
 export async function createShift(shift: {service: number; event: number; start: string; end: string}): Promise<ShiftItem> {
   await ensureCsrfCookie()
   const csrfToken = getCookie('csrftoken')
@@ -454,7 +549,7 @@ export function useActiveServiceId(): [number | null, (id: number | null) => voi
   return [activeServiceId, setAndSaveActiveServiceId]
 }
 
-export async function createService(name: string): Promise<ServiceItem> {
+export async function createService(name: string, color?: string): Promise<ServiceItem> {
   await ensureCsrfCookie()
   const csrfToken = getCookie('csrftoken')
   return apiFetch<ServiceItem>('/api/v1/services/', {
@@ -462,11 +557,11 @@ export async function createService(name: string): Promise<ServiceItem> {
     headers: {
       ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, ...(color ? {color} : {}) }),
   })
 }
 
-export async function patchService(id: number, name: string): Promise<ServiceItem> {
+export async function patchService(id: number, name: string, color: string): Promise<ServiceItem> {
   await ensureCsrfCookie()
   const csrfToken = getCookie('csrftoken')
   return apiFetch<ServiceItem>(`/api/v1/services/${id}/`, {
@@ -474,7 +569,7 @@ export async function patchService(id: number, name: string): Promise<ServiceIte
     headers: {
       ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, color }),
   })
 }
 

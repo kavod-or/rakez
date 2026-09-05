@@ -114,3 +114,40 @@ class ServicePermissionTests(StaffingPermissionsBase):
         )
 
         self._assert_deleted(response_delete)
+
+    def test_global_manager_can_set_service_color(self):
+        self._authenticate_as(self.global_manager)
+
+        response_create = self.client.post(
+            self.base_url,
+            data={
+                "name": "colored-service",
+                "color": "#12abEF",
+            },
+            format="json"
+        )
+
+        self._assert_created(response_create)
+        self.assertEqual(response_create.data["color"], "#12ABEF")
+
+        service_id = response_create.data["id"]
+        response_update = self.client.patch(
+            f'{self.base_url}{service_id}/',
+            data={"color": "#abcdef"},
+            format="json"
+        )
+
+        self._assert_updated(response_update)
+        self.assertEqual(response_update.data["color"], "#ABCDEF")
+
+    def test_service_color_must_be_six_digit_hex(self):
+        self._authenticate_as(self.global_manager)
+
+        response = self.client.post(
+            self.base_url,
+            data={"name": "invalid-color-service", "color": "blue"},
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("color", response.data)

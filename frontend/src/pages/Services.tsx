@@ -78,6 +78,7 @@ export function ServicesPage() {
     const [detailService, setDetailService] = useState<ServiceItem | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [serviceEditName, setServiceEditName] = useState('')
+    const [serviceEditColor, setServiceEditColor] = useState('')
     const [serviceEditError, setServiceEditError] = useState<string | null>(null)
     const [isSavingService, setIsSavingService] = useState(false)
     const [isDeletingService, setIsDeletingService] = useState(false)
@@ -101,6 +102,7 @@ export function ServicesPage() {
         const servicePositions = getServicePositions(detailService.id, positions)
 
         setServiceEditName(detailService.name)
+        setServiceEditColor(detailService.color)
         setServiceEditError(null)
         setPositionDrafts(
             Object.fromEntries(servicePositions.map((position) => [position.id, position.name])),
@@ -114,6 +116,7 @@ export function ServicesPage() {
     const hasPositionChanges = (position: PositionItem) =>
         (positionDrafts[position.id] ?? position.name).trim() !== position.name.trim()
     const hasServiceNameChanges = detailService ? serviceEditName.trim() !== detailService.name.trim() : false
+    const hasServiceColorChanges = detailService ? serviceEditColor !== detailService.color : false
 
     const closeServiceDialog = () => {
         setServiceDialogOpen(false)
@@ -164,12 +167,16 @@ export function ServicesPage() {
             setServiceEditError('Please enter a service name.')
             return
         }
+        if (!/^#[0-9a-fA-F]{6}$/.test(serviceEditColor)) {
+            setServiceEditError('Please choose a valid service color.')
+            return
+        }
 
         setIsSavingService(true)
         setServiceEditError(null)
 
         try {
-            const updated = await patchService(detailService.id, trimmedName)
+            const updated = await patchService(detailService.id, trimmedName, serviceEditColor)
             queryClient.setQueryData(['services'], (old: ServiceItem[] | undefined) =>
                 (old ?? []).map((service) => (service.id === detailService.id ? updated : service)),
             )
@@ -377,7 +384,7 @@ export function ServicesPage() {
                                 onKeyDown={(event) => {
                                     if (event.key === 'Enter') {
                                         event.preventDefault()
-                                        if (hasServiceNameChanges) {
+                                        if (hasServiceNameChanges || hasServiceColorChanges) {
                                             void handleSaveService()
                                         } else {
                                             setIsEditing(false)
@@ -394,6 +401,17 @@ export function ServicesPage() {
                                     aria-label="Save service name"
                                     onClick={() => void handleSaveService()}
                                     disabled={isSavingService || !serviceEditName.trim()}
+                                >
+                                    <CheckIcon fontSize="small"/>
+                                </IconButton>
+                            )}
+                            {hasServiceColorChanges && !hasServiceNameChanges && (
+                                <IconButton
+                                    color="primary"
+                                    size="small"
+                                    aria-label="Save service color"
+                                    onClick={() => void handleSaveService()}
+                                    disabled={isSavingService}
                                 >
                                     <CheckIcon fontSize="small"/>
                                 </IconButton>
@@ -440,6 +458,23 @@ export function ServicesPage() {
                         )}
 
                         <Box sx={{border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, backgroundColor: 'rgba(0,0,0,0.01)'}}>
+                            {isEditing && (
+                                <Stack direction="row" spacing={1.5} sx={{alignItems: 'center', mb: 2}}>
+                                    <Box component="label" sx={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                                        <Box sx={{width: 28, height: 28, borderRadius: '50%', bgcolor: serviceEditColor, border: '2px solid', borderColor: 'background.paper', boxShadow: 1, position: 'relative'}}>
+                                            <Box
+                                                component="input"
+                                                type="color"
+                                                value={serviceEditColor}
+                                                onChange={(event) => setServiceEditColor(event.target.value.toUpperCase())}
+                                                aria-label="Service color"
+                                                sx={{position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer'}}
+                                            />
+                                        </Box>
+                                    </Box>
+                                    <Typography variant="body2" color="text.secondary">Used for this service’s shifts in the planner.</Typography>
+                                </Stack>
+                            )}
                             <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1}}>
                                 <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary'}}>Positions</Typography>
                                 <Stack direction="row" spacing={1} sx={{alignItems: 'center', flex: 1, justifyContent: 'flex-end'}}>

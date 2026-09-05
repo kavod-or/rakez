@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Max
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 
@@ -23,8 +24,10 @@ class ShiftPosition(models.Model):
         validators=[MinValueValidator(1)]
     )
 
+    sort_order = models.PositiveIntegerField(default=0)
+
     class Meta:
-        ordering = ['position']
+        ordering = ['shift', 'sort_order', 'position']
         constraints = [
             models.UniqueConstraint(
                 fields=['shift', 'position'],
@@ -48,6 +51,11 @@ class ShiftPosition(models.Model):
             })
 
     def save(self, *args, **kwargs):
+        if self._state.adding and self.sort_order == 0 and self.shift_id:
+            last_order = ShiftPosition.objects.filter(shift_id=self.shift_id).aggregate(
+                max_order=Max('sort_order')
+            )['max_order']
+            self.sort_order = (last_order or 0) + 1
         self.full_clean()
         return super().save(*args, **kwargs)
 

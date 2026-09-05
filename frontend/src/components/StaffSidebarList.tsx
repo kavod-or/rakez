@@ -66,19 +66,30 @@ function getAssignedServiceNames(member: StaffItem, serviceNames: Map<number, st
     ))
 }
 
-function StaffCard({member, serviceNames, onSelect}: {
+function StaffCard({member, serviceNames, isDragging, onSelect, onDragStateChange}: {
     member: StaffItem
     serviceNames: Map<number, string>
+    isDragging: boolean
     onSelect: (member: StaffItem) => void
+    onDragStateChange: (staffId: number | null) => void
 }) {
     const assignedServices = getAssignedServiceNames(member, serviceNames)
 
     return (
         <Card
+            draggable
+            onDragStart={(event) => {
+                event.dataTransfer.setData('application/x-rakez-staff-id', String(member.id))
+                event.dataTransfer.effectAllowed = 'copy'
+                onDragStateChange(member.id)
+            }}
+            onDragEnd={() => onDragStateChange(null)}
             elevation={0}
             sx={{
                 backgroundColor: 'rgba(15, 23, 42, 0.45)',
                 border: '1px solid rgba(148, 163, 184, 0.16)',
+                opacity: isDragging ? 0.55 : 1,
+                transition: 'opacity 120ms ease',
             }}
         >
             <CardActionArea onClick={() => onSelect(member)} sx={{p: 1.25}}>
@@ -136,6 +147,7 @@ export const StaffSidebarList = forwardRef<StaffSidebarListHandle>(function Staf
 
     const [search, setSearch] = useState(() => inMemorySearch)
     const [searchFilters, setSearchFilters] = useState<string[]>(loadStoredSearchFilters)
+    const [draggedStaffId, setDraggedStaffId] = useState<number | null>(null)
     const [selectedStaff, setSelectedStaff] = useState<StaffItem | null>(null)
     const [dialogError, setDialogError] = useState<string | null>(null)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -423,6 +435,8 @@ export const StaffSidebarList = forwardRef<StaffSidebarListHandle>(function Staf
                             key={member.id}
                             member={member}
                             serviceNames={serviceNames}
+                            isDragging={draggedStaffId === member.id}
+                            onDragStateChange={(staffId) => { setDraggedStaffId(staffId); window.dispatchEvent(new CustomEvent('staff-dragging', {detail: staffId})) }}
                             onSelect={setSelectedStaff}
                         />
                     ))
