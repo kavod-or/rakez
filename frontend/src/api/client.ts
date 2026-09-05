@@ -66,6 +66,14 @@ export type PositionItem = {
   service: number
 }
 
+export type ShiftItem = {
+  id: number
+  service: number
+  event: number
+  start: string
+  end: string
+}
+
 export type LoginResponse = {
   detail: string
   user: {
@@ -329,6 +337,45 @@ export async function getServices(): Promise<ServiceItem[]> {
   return apiFetch<ServiceItem[]>('/api/v1/services/')
 }
 
+export async function getShifts(): Promise<ShiftItem[]> {
+  return apiFetch<ShiftItem[]>('/api/v1/shifts/')
+}
+
+export async function createShift(shift: {service: number; event: number; start: string; end: string}): Promise<ShiftItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftItem>('/api/v1/shifts/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(shift),
+  })
+}
+
+export async function deleteShift(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/shifts/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+  })
+}
+
+export async function patchShift(id: number, shift: Pick<ShiftItem, 'start' | 'end'>): Promise<ShiftItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<ShiftItem>(`/api/v1/shifts/${id}/`, {
+    method: 'PATCH',
+    headers: {
+      ...(csrfToken ? {'X-CSRFToken': csrfToken} : {}),
+    },
+    body: JSON.stringify(shift),
+  })
+}
+
 export function getActiveServiceId(): number | null {
   try {
     const value = localStorage.getItem('active-service')
@@ -350,6 +397,39 @@ export function setActiveServiceId(id: number | null) {
     // Ignore storage errors.
   }
   window.dispatchEvent(new CustomEvent('active-service-changed', {detail: id}))
+}
+
+export type PlannerTimeRange = {startHour: number; endHour: number}
+
+const plannerTimeRangeStorageKey = 'planner-time-range'
+
+export function getPlannerTimeRange(): PlannerTimeRange {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(plannerTimeRangeStorageKey) ?? '')
+    if (typeof parsed === 'object' && parsed !== null && 'startHour' in parsed && 'endHour' in parsed) {
+      const {startHour, endHour} = parsed as PlannerTimeRange
+      if (Number.isInteger(startHour) && Number.isInteger(endHour) && startHour >= 0 && startHour < 24 && endHour >= 0 && endHour < 24) return {startHour, endHour}
+    }
+  } catch {
+    // Ignore invalid or unavailable stored settings.
+  }
+  return {startHour: 0, endHour: 0}
+}
+
+export function setPlannerTimeRange(range: PlannerTimeRange) {
+  localStorage.setItem(plannerTimeRangeStorageKey, JSON.stringify(range))
+  window.dispatchEvent(new CustomEvent('planner-time-range-changed', {detail: range}))
+}
+
+export function usePlannerTimeRange(): [PlannerTimeRange, (range: PlannerTimeRange) => void] {
+  const [range, setRange] = useState<PlannerTimeRange>(getPlannerTimeRange)
+  useEffect(() => {
+    const updateRange = () => setRange(getPlannerTimeRange())
+    window.addEventListener('planner-time-range-changed', updateRange)
+    return () => window.removeEventListener('planner-time-range-changed', updateRange)
+  }, [])
+  const setAndSaveRange = (next: PlannerTimeRange) => { setPlannerTimeRange(next); setRange(next) }
+  return [range, setAndSaveRange]
 }
 
 export function useActiveServiceId(): [number | null, (id: number | null) => void] {

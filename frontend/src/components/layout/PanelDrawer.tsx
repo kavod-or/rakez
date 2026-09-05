@@ -6,6 +6,8 @@ import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -14,6 +16,7 @@ import {ActiveEventSelector} from '../ActiveEventSelector'
 import {ActiveServiceSelector} from '../ActiveServiceSelector'
 import {StaffSidebarList, type StaffSidebarListHandle} from '../StaffSidebarList'
 import {EventDetails} from '../EventDetails'
+import {usePlannerTimeRange} from '../../api/client'
 
 const OPEN_WIDTH = '22%'
 const CLOSED_WIDTH = 48
@@ -39,6 +42,8 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
     const [settingsExpanded, setSettingsExpanded] = useState(() => loadStoredExpanded(SETTINGS_ACCORDION_STORAGE_KEY, true))
     const [staffExpanded, setStaffExpanded] = useState(() => loadStoredExpanded(STAFF_ACCORDION_STORAGE_KEY, true))
     const staffListRef = useRef<StaffSidebarListHandle>(null)
+    const [plannerTimeRange, setPlannerTimeRange] = usePlannerTimeRange()
+    const hours = Array.from({length: 24}, (_, hour) => hour)
 
     const handleSettingsExpandedChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
         setSettingsExpanded(isExpanded)
@@ -115,6 +120,26 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
                             <Box sx={{display: 'grid', gap: 1.5}}>
                                 <ActiveEventSelector fullWidth/>
                                 <ActiveServiceSelector fullWidth/>
+                                <Box sx={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1}}>
+                                    <TextField
+                                        select
+                                        size="small"
+                                        label="Show from"
+                                        value={plannerTimeRange.startHour}
+                                        onChange={(event) => setPlannerTimeRange({...plannerTimeRange, startHour: Number(event.target.value)})}
+                                    >
+                                        {hours.map((hour) => <MenuItem key={hour} value={hour}>{String(hour).padStart(2, '0')}:00</MenuItem>)}
+                                    </TextField>
+                                    <TextField
+                                        select
+                                        size="small"
+                                        label="Show until"
+                                        value={plannerTimeRange.endHour}
+                                        onChange={(event) => setPlannerTimeRange({...plannerTimeRange, endHour: Number(event.target.value)})}
+                                    >
+                                        {hours.map((hour) => <MenuItem key={hour} value={hour}>{hour === 0 ? '24:00' : `${String(hour).padStart(2, '0')}:00`}</MenuItem>)}
+                                    </TextField>
+                                </Box>
                                 <EventDetails/>
                             </Box>
                         </AccordionDetails>
