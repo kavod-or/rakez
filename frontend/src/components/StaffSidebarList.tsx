@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react'
+import {forwardRef, useImperativeHandle, useMemo, useState} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {
     Avatar,
@@ -9,14 +9,19 @@ import {
     Chip,
     Stack,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
     Typography,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import CheckIcon from '@mui/icons-material/Check'
+import AddIcon from '@mui/icons-material/Add'
 import InputAdornment from '@mui/material/InputAdornment'
-import {StaffDetailDialog} from '../pages/Staff'
+import {emptyStaff, StaffDetailDialog} from '../pages/Staff'
 import {DetailDialog} from './ui/DetailDialog'
 import {
     assignStaffPosition,
+    createStaff,
     deleteStaff,
     getPositions,
     getServices,
@@ -25,6 +30,29 @@ import {
     removeStaffPosition,
 } from '../api/client'
 import type {PositionItem, ServiceItem, StaffItem} from '../api/client'
+
+const SEARCH_FILTERS_STORAGE_KEY = 'staff-sidebar-search-filters'
+const DEFAULT_SEARCH_FILTERS = ['name', 'service', 'position']
+
+// Search text should survive the sidebar/drawer opening and closing (component
+// remounts), but must reset on a full page refresh or new session — so it is
+// kept in a module-level variable instead of persisted storage.
+let inMemorySearch = ''
+
+function loadStoredSearchFilters(): string[] {
+    try {
+        const raw = localStorage.getItem(SEARCH_FILTERS_STORAGE_KEY)
+        if (!raw) return DEFAULT_SEARCH_FILTERS
+
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed
+        }
+        return DEFAULT_SEARCH_FILTERS
+    } catch {
+        return DEFAULT_SEARCH_FILTERS
+    }
+}
 
 function getInitials(member: StaffItem) {
     return `${member.firstname.charAt(0)}${member.lastname.charAt(0)}`.toUpperCase()
@@ -78,7 +106,11 @@ function StaffCard({member, serviceNames, onSelect}: {
     )
 }
 
-export function StaffSidebarList() {
+export type StaffSidebarListHandle = {
+    openCreateDialog: () => void
+}
+
+export const StaffSidebarList = forwardRef<StaffSidebarListHandle>(function StaffSidebarList(_props, ref) {
     const queryClient = useQueryClient()
     const {data: staff = []} = useQuery<StaffItem[]>({
         queryKey: ['staff'],
@@ -102,11 +134,21 @@ export function StaffSidebarList() {
         refetchOnWindowFocus: false,
     })
 
-    const [search, setSearch] = useState('')
+    const [search, setSearch] = useState(() => inMemorySearch)
+    const [searchFilters, setSearchFilters] = useState<string[]>(loadStoredSearchFilters)
     const [selectedStaff, setSelectedStaff] = useState<StaffItem | null>(null)
     const [dialogError, setDialogError] = useState<string | null>(null)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [isDeletingStaff, setIsDeletingStaff] = useState(false)
+    const [createDialogOpen, setCreateDialogOpen] = useState(false)
+    const [createDialogError, setCreateDialogError] = useState<string | null>(null)
+
+    useImperativeHandle(ref, () => ({
+        openCreateDialog: () => {
+            setCreateDialogOpen(true)
+            setCreateDialogError(null)
+        },
+    }), [])
 
     const serviceNames = useMemo(() => new Map(services.map((service) => [service.id, service.name])), [services])
 
@@ -114,11 +156,21 @@ export function StaffSidebarList() {
         const query = search.trim().toLowerCase()
         if (!query) return true
 
-        const nameToken = `${member.firstname} ${member.lastname}`.toLowerCase()
-        if (nameToken.includes(query)) return true
+        if (searchFilters.includes('name')) {
+            const nameToken = `${member.firstname} ${member.lastname}`.toLowerCase()
+            if (nameToken.includes(query)) return true
+        }
 
-        const assignedServices = getAssignedServiceNames(member, serviceNames)
-        return assignedServices.some((name) => name.toLowerCase().includes(query))
+        if (searchFilters.includes('service')) {
+            const assignedServices = getAssignedServiceNames(member, serviceNames)
+            if (assignedServices.some((name) => name.toLowerCase().includes(query))) return true
+        }
+
+        if (searchFilters.includes('position')) {
+            if (member.positions.some((position) => position.name.toLowerCase().includes(query))) return true
+        }
+
+        return false
     })
 
     const handleAddPosition = async (positionId: number) => {
@@ -257,13 +309,81 @@ export function StaffSidebarList() {
         }
     }
 
+    const handleCreateStaff = async (firstname: string, lastname: string) => {
+        try {
+            const created = await createStaff(firstname, lastname)
+            queryClient.setQueryData(['staff'], (old: StaffItem[] | undefined) => [...(old ?? []), created])
+            setCreateDialogOpen(false)
+            setCreateDialogError(null)
+        } catch (error) {
+            setCreateDialogError(error instanceof Error ? error.message : 'Failed to create staff')
+        }
+    }
+
     return (
         <Stack spacing={1.25}>
+            <Stack spacing={0.5}>
+                <ToggleButtonGroup
+                    value={searchFilters}
+                    onChange={(_event, value: string[]) => {
+                        if (value.length > 0) {
+                            setSearchFilters(value)
+                            try {
+                                localStorage.setItem(SEARCH_FILTERS_STORAGE_KEY, JSON.stringify(value))
+                            } catch {
+                                // ignore storage errors (e.g. private mode)
+                            }
+                        }
+                    }}
+                    size="small"
+                    sx={{
+                        alignSelf: 'flex-start',
+                        gap: 0.5,
+                        '& .MuiToggleButton-root': {
+                            px: 1.25,
+                            py: 0.25,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            lineHeight: 1.4,
+                            borderRadius: '16px !important',
+                            border: '1px solid rgba(148, 163, 184, 0.3)',
+                            color: 'text.secondary',
+                            '&.Mui-selected': {
+                                backgroundColor: 'primary.main',
+                                color: 'primary.contrastText',
+                                borderColor: 'primary.main',
+                                '&:hover': {
+                                    backgroundColor: 'primary.dark',
+                                },
+                            },
+                        },
+                    }}
+                >
+                    <ToggleButton value="name" aria-label="Search by name">
+                        <CheckIcon fontSize="inherit" sx={{fontSize: 14, mr: 0.5, visibility: searchFilters.includes('name') ? 'visible' : 'hidden'}}/>
+                        Name
+                    </ToggleButton>
+                    <ToggleButton value="service" aria-label="Search by service">
+                        <CheckIcon fontSize="inherit" sx={{fontSize: 14, mr: 0.5, visibility: searchFilters.includes('service') ? 'visible' : 'hidden'}}/>
+                        Service
+                    </ToggleButton>
+                    <ToggleButton value="position" aria-label="Search by position">
+                        <CheckIcon fontSize="inherit" sx={{fontSize: 14, mr: 0.5, visibility: searchFilters.includes('position') ? 'visible' : 'hidden'}}/>
+                        Position
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            </Stack>
+
             <TextField
                 size="small"
                 placeholder="Search staff"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                    const value = event.target.value
+                    setSearch(value)
+                    inMemorySearch = value
+                }}
                 fullWidth
                 slotProps={{
                     input: {
@@ -278,9 +398,21 @@ export function StaffSidebarList() {
 
             <Stack spacing={1}>
                 {filteredStaff.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                        {search.trim() ? 'No matching staff.' : 'No staff members yet.'}
-                    </Typography>
+                    <Stack spacing={1} sx={{alignItems: 'flex-start'}}>
+                        <Typography variant="body2" color="text.secondary">
+                            {search.trim() ? 'No matching staff.' : 'No staff members yet.'}
+                        </Typography>
+                        <Button
+                            size="small"
+                            startIcon={<AddIcon fontSize="small"/>}
+                            onClick={() => {
+                                setCreateDialogOpen(true)
+                                setCreateDialogError(null)
+                            }}
+                        >
+                            Add staff
+                        </Button>
+                    </Stack>
                 ) : (
                     filteredStaff.map((member) => (
                         <StaffCard
@@ -326,6 +458,23 @@ export function StaffSidebarList() {
                     This will permanently remove the staff member and all their assignments.
                 </Typography>
             </DetailDialog>
+
+            <StaffDetailDialog
+                staff={emptyStaff}
+                services={services}
+                positions={positions}
+                isCreateMode
+                onClose={() => {
+                    setCreateDialogOpen(false)
+                    setCreateDialogError(null)
+                }}
+                onAddPosition={async () => undefined}
+                onRemovePosition={async () => undefined}
+                onUpdateStaffName={async () => undefined}
+                onCreateStaff={handleCreateStaff}
+                error={createDialogError}
+                open={createDialogOpen}
+            />
         </Stack>
     )
-}
+})

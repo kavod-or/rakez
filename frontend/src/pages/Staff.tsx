@@ -3,13 +3,12 @@ import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {
     Box,
     Button,
+    Chip,
     CircularProgress,
     Fab,
     FormControl,
     IconButton,
     InputLabel,
-    List,
-    ListItem,
     MenuItem,
     Select,
     Stack,
@@ -29,7 +28,7 @@ import {Panel} from '../components/layout/Panel'
 import {ContentArea} from '../components/layout/ContentArea'
 import {DetailDialog} from '../components/ui/DetailDialog'
 import {assignStaffPosition, createStaff, deleteStaff, getPositions, getServices, getStaff, patchStaff, removeStaffPosition} from '../api/client'
-import type {PositionItem, ServiceItem, StaffItem} from '../api/client'
+import type {PositionItem, ServiceItem, StaffItem, StaffPosition} from '../api/client'
 
 type StaffRow = {
     id: number
@@ -39,7 +38,7 @@ type StaffRow = {
     member: StaffItem
 }
 
-const emptyStaff: StaffItem = {
+export const emptyStaff: StaffItem = {
     id: 0,
     public_id: '',
     firstname: '',
@@ -145,6 +144,21 @@ export function StaffDetailDialog({
         const token = `${serviceMap.get(position.service ?? -1) ?? 'Unknown'} - ${position.name}`.toLowerCase()
         return token.includes(assignmentSearch.trim().toLowerCase())
     })
+    const assignedServiceNames = Array.from(new Set(
+        (staff?.positions ?? [])
+            .map((position) => serviceMap.get(position.service ?? -1))
+            .filter((name): name is string => Boolean(name)),
+    ))
+    const positionsGroupedByService = (() => {
+        const grouped = new Map<string, StaffPosition[]>()
+        filteredAssignments.forEach((position) => {
+            const serviceName = serviceMap.get(position.service ?? -1) ?? 'Unassigned'
+            const list = grouped.get(serviceName) ?? []
+            list.push(position)
+            grouped.set(serviceName, list)
+        })
+        return Array.from(grouped.entries())
+    })()
     const hasNameChanges = staff ? firstnameDraft.trim() !== staff.firstname.trim() || lastnameDraft.trim() !== staff.lastname.trim() : false
 
     const handleOpenAdd = () => {
@@ -299,6 +313,21 @@ export function StaffDetailDialog({
                            <Typography color="error" variant="body2">{error}</Typography>
                        )}
 
+                       <Box>
+                           <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary', mb: 1}}>
+                               Services
+                           </Typography>
+                           {assignedServiceNames.length > 0 ? (
+                               <Stack direction="row" spacing={0.75} sx={{flexWrap: 'wrap', gap: 0.75}}>
+                                   {assignedServiceNames.map((name) => (
+                                       <Chip key={name} label={name} size="small" color="primary" sx={{fontWeight: 600}}/>
+                                   ))}
+                               </Stack>
+                           ) : (
+                               <Typography variant="body2" color="text.secondary">No services assigned</Typography>
+                           )}
+                       </Box>
+
                        <Box sx={{border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, backgroundColor: 'rgba(0,0,0,0.01)'}}>
                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1}}>
                                <Typography variant="subtitle2" sx={{fontWeight: 600, color: 'text.secondary'}}>Positions</Typography>
@@ -373,48 +402,55 @@ export function StaffDetailDialog({
                                </Stack>
                            )}
 
-                           {filteredAssignments.length === 0 ? (
+                           {positionsGroupedByService.length === 0 ? (
                                <Typography variant="body2" color="text.secondary">
                                    {assignmentSearch.trim() ? 'No matching assignments.' : isCreateMode ? 'No positions assigned yet.' : 'No positions assigned.'}
                                </Typography>
                            ) : (
-                               <List dense disablePadding sx={{maxHeight: 280, overflowY: 'auto', pr: 0.5}}>
-                                   {filteredAssignments.map((position) => (
-                                       <ListItem key={position.id} disablePadding sx={{py: 0.5}}>
-                                           <Stack direction="row" spacing={1} sx={{width: '100%', alignItems: 'center'}}>
-                                               <Box
-                                                   sx={{
-                                                       width: '100%',
-                                                       border: '1px solid',
-                                                       borderColor: 'divider',
-                                                       borderRadius: 1,
-                                                       px: 1.5,
-                                                       py: 0.75,
-                                                       backgroundColor: 'background.paper',
-                                                       display: 'flex',
-                                                       alignItems: 'center',
-                                                       minHeight: 40,
-                                                   }}
-                                               >
-                                                   <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>
-                                                       {`${serviceMap.get(position.service ?? -1) ?? 'Unknown'} - ${position.name}`}
-                                                   </Typography>
-                                               </Box>
-                                               {isInEditMode && !isCreateMode && (
-                                                   <IconButton
-                                                       aria-label={`Remove position ${position.name}`}
-                                                       size="small"
-                                                       color="error"
-                                                       onClick={() => void onRemovePosition(position.id)}
-                                                       sx={{width: 28, height: 28, borderRadius: 1}}
-                                                   >
-                                                       <DeleteOutlineOutlined fontSize="small"/>
-                                                   </IconButton>
-                                               )}
+                               <Stack spacing={1.25} sx={{maxHeight: 280, overflowY: 'auto', pr: 0.5}}>
+                                   {positionsGroupedByService.map(([serviceName, servicePositions]) => (
+                                       <Box key={serviceName}>
+                                           <Typography variant="caption" color="text.secondary" sx={{textTransform: 'uppercase', letterSpacing: 0.3}}>
+                                               {serviceName}
+                                           </Typography>
+                                           <Stack spacing={0.5} sx={{mt: 0.5}}>
+                                               {servicePositions.map((position) => (
+                                                   <Stack key={position.id} direction="row" spacing={1} sx={{width: '100%', alignItems: 'center'}}>
+                                                       <Box
+                                                           sx={{
+                                                               width: '100%',
+                                                               border: '1px solid',
+                                                               borderColor: 'divider',
+                                                               borderRadius: 1,
+                                                               px: 1.5,
+                                                               py: 0.75,
+                                                               backgroundColor: 'background.paper',
+                                                               display: 'flex',
+                                                               alignItems: 'center',
+                                                               minHeight: 40,
+                                                           }}
+                                                       >
+                                                           <Typography variant="body2" sx={{fontSize: '0.875rem', lineHeight: 1.4}}>
+                                                               {position.name}
+                                                           </Typography>
+                                                       </Box>
+                                                       {isInEditMode && !isCreateMode && (
+                                                           <IconButton
+                                                               aria-label={`Remove position ${position.name}`}
+                                                               size="small"
+                                                               color="error"
+                                                               onClick={() => void onRemovePosition(position.id)}
+                                                               sx={{width: 28, height: 28, borderRadius: 1}}
+                                                           >
+                                                               <DeleteOutlineOutlined fontSize="small"/>
+                                                           </IconButton>
+                                                       )}
+                                                   </Stack>
+                                               ))}
                                            </Stack>
-                                       </ListItem>
+                                       </Box>
                                    ))}
-                               </List>
+                               </Stack>
                            )}
 
                        </Box>

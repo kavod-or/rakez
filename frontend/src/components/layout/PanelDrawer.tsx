@@ -1,4 +1,5 @@
 import {useTheme} from '@mui/material/styles'
+import {useRef, useState} from 'react'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Accordion from '@mui/material/Accordion'
@@ -8,12 +9,24 @@ import Typography from '@mui/material/Typography'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import AddIcon from '@mui/icons-material/Add'
 import {ActiveEventSelector} from '../ActiveEventSelector'
-import {StaffSidebarList} from '../StaffSidebarList'
+import {StaffSidebarList, type StaffSidebarListHandle} from '../StaffSidebarList'
 import {EventDetails} from '../EventDetails'
 
 const OPEN_WIDTH = '22%'
 const CLOSED_WIDTH = 48
+const EVENT_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-event-expanded'
+const STAFF_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-staff-expanded'
+
+function loadStoredExpanded(key: string, defaultValue: boolean): boolean {
+    try {
+        const raw = localStorage.getItem(key)
+        return raw === null ? defaultValue : raw === 'true'
+    } catch {
+        return defaultValue
+    }
+}
 
 type PanelDrawerProps = {
     open: boolean
@@ -22,6 +35,27 @@ type PanelDrawerProps = {
 
 export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
     const theme = useTheme()
+    const [eventExpanded, setEventExpanded] = useState(() => loadStoredExpanded(EVENT_ACCORDION_STORAGE_KEY, true))
+    const [staffExpanded, setStaffExpanded] = useState(() => loadStoredExpanded(STAFF_ACCORDION_STORAGE_KEY, true))
+    const staffListRef = useRef<StaffSidebarListHandle>(null)
+
+    const handleEventExpandedChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
+        setEventExpanded(isExpanded)
+        try {
+            localStorage.setItem(EVENT_ACCORDION_STORAGE_KEY, String(isExpanded))
+        } catch {
+            // ignore storage errors (e.g. private mode)
+        }
+    }
+
+    const handleStaffExpandedChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
+        setStaffExpanded(isExpanded)
+        try {
+            localStorage.setItem(STAFF_ACCORDION_STORAGE_KEY, String(isExpanded))
+        } catch {
+            // ignore storage errors (e.g. private mode)
+        }
+    }
 
     return (
         <Box
@@ -66,6 +100,8 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
                     <Accordion
                         disableGutters
                         elevation={0}
+                        expanded={eventExpanded}
+                        onChange={handleEventExpandedChange}
                         sx={{
                             backgroundColor: 'transparent',
                             '&:before': {display: 'none'},
@@ -83,16 +119,34 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
                     <Accordion
                         disableGutters
                         elevation={0}
+                        expanded={staffExpanded}
+                        onChange={handleStaffExpandedChange}
                         sx={{
                             backgroundColor: 'transparent',
                             '&:before': {display: 'none'},
                         }}
                     >
                         <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                            <Typography variant="subtitle2" sx={{fontWeight: 600}}>Staff</Typography>
+                            <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 1}}>
+                                <Typography variant="subtitle2" sx={{fontWeight: 600}}>Staff</Typography>
+                                {staffExpanded && (
+                                    <IconButton
+                                        aria-label="Add staff"
+                                        size="small"
+                                        onClick={(event) => {
+                                            event.stopPropagation()
+                                            staffListRef.current?.openCreateDialog()
+                                        }}
+                                        onMouseDown={(event) => event.stopPropagation()}
+                                        sx={{width: 24, height: 24}}
+                                    >
+                                        <AddIcon fontSize="small"/>
+                                    </IconButton>
+                                )}
+                            </Box>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <StaffSidebarList/>
+                            <StaffSidebarList ref={staffListRef}/>
                         </AccordionDetails>
                     </Accordion>
                 </Box>
