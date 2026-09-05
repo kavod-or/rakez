@@ -5,8 +5,8 @@ import {Menu} from '../components/layout/Menu'
 import {Panel} from "../components/layout/Panel"
 import {ContentArea} from '../components/layout/ContentArea'
 import {PanelDrawer} from '../components/layout/PanelDrawer'
-import {getEvents, useActiveEventId} from '../api/client'
-import type {EventItem} from '../api/client'
+import {getEvents, getServices, useActiveEventId, useActiveServiceId} from '../api/client'
+import type {EventItem, ServiceItem} from '../api/client'
 
 const panelDrawerStorageKey = 'dashboard-panel-drawer-open'
 
@@ -22,8 +22,18 @@ export function DashboardPage() {
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: false,
     })
+    const {data: services = []} = useQuery<ServiceItem[]>({
+        queryKey: ['services'],
+        queryFn: getServices,
+        retry: false,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+    })
     const [activeEventId] = useActiveEventId()
+    const [activeServiceId] = useActiveServiceId()
     const activeEvent = events.find((event) => String(event.public_id || event.id) === activeEventId)
+    const activeService = services.find((service) => service.id === activeServiceId)
+    const title = [activeEvent?.name, activeService?.name].filter(Boolean).join(' · ') || 'Dashboard'
 
     const toggleDrawer = () => {
         setDrawerOpen((prev) => {
@@ -38,7 +48,7 @@ export function DashboardPage() {
             <Menu/>
             <ContentArea>
                 <Panel
-                    title={activeEvent ? activeEvent.name : 'Dashboard'}
+                    title={title}
                     rightDrawer={<PanelDrawer open={drawerOpen} onToggle={toggleDrawer}/>}
                     sx={{height: '100%'}}
                 >

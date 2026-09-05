@@ -11,12 +11,13 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import {ActiveEventSelector} from '../ActiveEventSelector'
+import {ActiveServiceSelector} from '../ActiveServiceSelector'
 import {StaffSidebarList, type StaffSidebarListHandle} from '../StaffSidebarList'
 import {EventDetails} from '../EventDetails'
 
 const OPEN_WIDTH = '22%'
 const CLOSED_WIDTH = 48
-const EVENT_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-event-expanded'
+const SETTINGS_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-settings-expanded'
 const STAFF_ACCORDION_STORAGE_KEY = 'dashboard-panel-drawer-staff-expanded'
 
 function loadStoredExpanded(key: string, defaultValue: boolean): boolean {
@@ -35,14 +36,14 @@ type PanelDrawerProps = {
 
 export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
     const theme = useTheme()
-    const [eventExpanded, setEventExpanded] = useState(() => loadStoredExpanded(EVENT_ACCORDION_STORAGE_KEY, true))
+    const [settingsExpanded, setSettingsExpanded] = useState(() => loadStoredExpanded(SETTINGS_ACCORDION_STORAGE_KEY, true))
     const [staffExpanded, setStaffExpanded] = useState(() => loadStoredExpanded(STAFF_ACCORDION_STORAGE_KEY, true))
     const staffListRef = useRef<StaffSidebarListHandle>(null)
 
-    const handleEventExpandedChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
-        setEventExpanded(isExpanded)
+    const handleSettingsExpandedChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
+        setSettingsExpanded(isExpanded)
         try {
-            localStorage.setItem(EVENT_ACCORDION_STORAGE_KEY, String(isExpanded))
+            localStorage.setItem(SETTINGS_ACCORDION_STORAGE_KEY, String(isExpanded))
         } catch {
             // ignore storage errors (e.g. private mode)
         }
@@ -100,19 +101,22 @@ export function PanelDrawer({open, onToggle}: PanelDrawerProps) {
                     <Accordion
                         disableGutters
                         elevation={0}
-                        expanded={eventExpanded}
-                        onChange={handleEventExpandedChange}
+                        expanded={settingsExpanded}
+                        onChange={handleSettingsExpandedChange}
                         sx={{
                             backgroundColor: 'transparent',
                             '&:before': {display: 'none'},
                         }}
                     >
                         <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                            <Typography variant="subtitle2" sx={{fontWeight: 600}}>Event</Typography>
+                            <Typography variant="subtitle2" sx={{fontWeight: 600}}>Settings</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <ActiveEventSelector fullWidth/>
-                            <EventDetails/>
+                            <Box sx={{display: 'grid', gap: 1.5}}>
+                                <ActiveEventSelector fullWidth/>
+                                <ActiveServiceSelector fullWidth/>
+                                <EventDetails/>
+                            </Box>
                         </AccordionDetails>
                     </Accordion>
 

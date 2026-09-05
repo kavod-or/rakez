@@ -329,6 +329,51 @@ export async function getServices(): Promise<ServiceItem[]> {
   return apiFetch<ServiceItem[]>('/api/v1/services/')
 }
 
+export function getActiveServiceId(): number | null {
+  try {
+    const value = localStorage.getItem('active-service')
+    const id = value === null ? NaN : Number(value)
+    return Number.isInteger(id) && id > 0 ? id : null
+  } catch {
+    return null
+  }
+}
+
+export function setActiveServiceId(id: number | null) {
+  try {
+    if (id === null) {
+      localStorage.removeItem('active-service')
+    } else {
+      localStorage.setItem('active-service', String(id))
+    }
+  } catch {
+    // Ignore storage errors.
+  }
+  window.dispatchEvent(new CustomEvent('active-service-changed', {detail: id}))
+}
+
+export function useActiveServiceId(): [number | null, (id: number | null) => void] {
+  const [activeServiceId, setActiveServiceIdState] = useState<number | null>(() => getActiveServiceId())
+
+  useEffect(() => {
+    const handleActiveServiceChange = () => setActiveServiceIdState(getActiveServiceId())
+    window.addEventListener('active-service-changed', handleActiveServiceChange)
+    window.addEventListener('storage', handleActiveServiceChange)
+
+    return () => {
+      window.removeEventListener('active-service-changed', handleActiveServiceChange)
+      window.removeEventListener('storage', handleActiveServiceChange)
+    }
+  }, [])
+
+  const setAndSaveActiveServiceId = (id: number | null) => {
+    setActiveServiceId(id)
+    setActiveServiceIdState(id)
+  }
+
+  return [activeServiceId, setAndSaveActiveServiceId]
+}
+
 export async function createService(name: string): Promise<ServiceItem> {
   await ensureCsrfCookie()
   const csrfToken = getCookie('csrftoken')
