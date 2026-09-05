@@ -11,12 +11,12 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import LogoutIcon from '@mui/icons-material/Logout'
 import {useNavigate} from 'react-router-dom'
-import {useQueryClient} from '@tanstack/react-query'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {MenuItem} from './MenuItem'
 import {MENU_ITEMS} from './MenuItems'
 import wordmark from '../../assets/wordmark.svg'
 import {glassSurfaceStyles} from '../ui/GlassBox'
-import {logout} from '../../api/client'
+import {getCurrentUser, logout} from '../../api/client'
 
 export const drawerWidth = 240
 const menuOpenStorageKey = 'menu-open'
@@ -81,6 +81,13 @@ export function Menu() {
     const theme = useTheme()
     const navigate = useNavigate()
     const queryClient = useQueryClient()
+    const {data: currentUser} = useQuery({
+        queryKey: ['current-user'],
+        queryFn: getCurrentUser,
+        retry: false,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+    })
     const [open, setOpen] = React.useState(() => {
         if (typeof window === 'undefined') {
             return true
@@ -115,6 +122,25 @@ export function Menu() {
             document.body.classList.remove('menu-open')
         }
     }, [open])
+
+    const accountLabel = currentUser?.username || 'Account'
+    const accountTooltip = currentUser?.username ? `@${currentUser.username}` : 'Account'
+    const footerMenuItems = [
+        {
+            id: 'account',
+            label: accountLabel,
+            icon: <AccountCircleIcon/>,
+            to: '/account',
+            tooltip: accountTooltip,
+        },
+        {
+            id: 'logout',
+            label: 'Logout',
+            icon: <LogoutIcon/>,
+            onClick: handleLogout,
+            tooltip: 'Logout',
+        },
+    ]
 
     return (
         <Drawer variant="permanent" open={open}>
@@ -173,20 +199,17 @@ export function Menu() {
                 <Box sx={{mt: 'auto'}}>
                     <Divider sx={{borderColor: 'rgba(148, 163, 184, 0.22)'}}/>
                     <List>
-                        <MenuItem
-                            open={open}
-                            label="Account"
-                            icon={<AccountCircleIcon/>}
-                            to="/account"
-                            tooltip="Account"
-                        />
-                        <MenuItem
-                            open={open}
-                            label="Logout"
-                            icon={<LogoutIcon/>}
-                            onClick={handleLogout}
-                            tooltip="Logout"
-                        />
+                        {footerMenuItems.map((item) => (
+                            <MenuItem
+                                key={item.id}
+                                open={open}
+                                label={item.label}
+                                icon={item.icon}
+                                to={item.to}
+                                onClick={item.onClick}
+                                tooltip={item.tooltip}
+                            />
+                        ))}
                     </List>
                 </Box>
             </Box>

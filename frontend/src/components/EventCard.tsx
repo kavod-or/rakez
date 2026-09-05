@@ -51,6 +51,12 @@ export default function EventCard({event, isActive = false, onActivate, onEdit, 
           </Box>
         </Box>
         <Stack spacing={0.5}>
+          {event.display_pin && (
+            <Box sx={{minWidth: 0}}>
+              <Typography variant="caption" color="text.secondary">PIN</Typography>
+              <Typography variant="body2" sx={{fontFamily: 'monospace'}}>{event.display_pin}</Typography>
+            </Box>
+          )}
           <Box sx={{minWidth: 0}}>
             <Typography variant="caption" color="text.secondary">Timezone</Typography>
             <Box sx={{display: 'flex', gap: 1, alignItems: 'center'}}>

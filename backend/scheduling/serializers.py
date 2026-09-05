@@ -8,6 +8,7 @@ from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
+from accounts.models import EventRole, GlobalRole
 from .models import Shift, ShiftPosition, ShiftAssignment, Event
 
 
@@ -85,21 +86,41 @@ class ShiftAssignmentSerializer(FullCleanModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     pin = serializers.CharField(write_only=True, required=True, min_length=6, max_length=6)
+    display_pin = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Event
-        exclude = ["pin_hash"]
+        exclude = ["pin_hash", "pin_display"]
+
+    def get_display_pin(self, event):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return None
+        if user.is_superuser or GlobalRole.objects.filter(
+            user=user,
+            role=GlobalRole.Role.GLOBAL_MANAGER,
+        ).exists():
+            return event.pin_display or None
+        if EventRole.objects.filter(
+            user=user,
+            event=event,
+            role=EventRole.Role.EVENT_MANAGER,
+        ).exists():
+            return event.pin_display or None
+        return None
 
     def create(self, validated_data):
         pin = validated_data.pop("pin")
         validated_data["pin_hash"] = make_password(pin)
+        validated_data["pin_display"] = pin
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # optional: allow pin rotation on update if provided
         pin = validated_data.pop("pin", None)
         if pin:
             validated_data["pin_hash"] = make_password(pin)
+            validated_data["pin_display"] = pin
         return super().update(instance, validated_data)
 
     def validate(self, attrs):

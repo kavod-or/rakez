@@ -60,7 +60,7 @@ export function MenuItem({open, label, icon, to, tooltip, onClick}: MenuItemProp
                         enterDelay={2000}
 
                     >
-                        <span>{icon}</span>
+                        <span style={{display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, lineHeight: 0}}>{icon}</span>
                     </Tooltip>
                 </ListItemIcon>
                 <ListItemText primary={label} sx={{opacity: open ? 1 : 0}}/>

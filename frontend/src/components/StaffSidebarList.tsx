@@ -337,9 +337,13 @@ export const StaffSidebarList = forwardRef<StaffSidebarListHandle>(function Staf
                     }}
                     size="small"
                     sx={{
-                        alignSelf: 'flex-start',
+                        alignSelf: 'stretch',
+                        width: '100%',
+                        display: 'flex',
                         gap: 0.5,
                         '& .MuiToggleButton-root': {
+                            flex: 1,
+                            minWidth: 0,
                             px: 1.25,
                             py: 0.25,
                             fontSize: '0.7rem',

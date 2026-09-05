@@ -38,6 +38,7 @@ export type EventItem = {
   end: string
   timezone: string
   description: string
+  display_pin?: string | null
 }
 
 export type StaffPosition = {
@@ -213,6 +214,18 @@ export async function removeUserRole(userId: number, scope: RoleScope, roleId: n
 
 export async function getEvents(): Promise<EventItem[]> {
   return apiFetch<EventItem[]>('/api/v1/events/')
+}
+
+export async function createEvent(event: { name: string; start: string; end: string; timezone: string; description?: string; pin: string }): Promise<EventItem> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  return apiFetch<EventItem>('/api/v1/events/', {
+    method: 'POST',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+    body: JSON.stringify(event),
+  })
 }
 
 export function getActiveEventId(): string | null {
@@ -440,7 +453,18 @@ export async function logout(): Promise<{ detail: string }> {
   })
 }
 
-export async function patchEvent(id: number, patch: Partial<{ name: string; start: string; end: string; timezone: string; description: string }>): Promise<EventItem> {
+export async function deleteEvent(id: number): Promise<void> {
+  await ensureCsrfCookie()
+  const csrfToken = getCookie('csrftoken')
+  await apiFetch<void>(`/api/v1/events/${id}/`, {
+    method: 'DELETE',
+    headers: {
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    },
+  })
+}
+
+export async function patchEvent(id: number, patch: Partial<{ name: string; start: string; end: string; timezone: string; description: string; pin: string }>): Promise<EventItem> {
   await ensureCsrfCookie()
   const csrfToken = getCookie('csrftoken')
   return apiFetch<EventItem>(`/api/v1/events/${id}/`, {

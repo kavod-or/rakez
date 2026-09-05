@@ -1,4 +1,4 @@
-import rakezIcon from '../../assets/rakez_icon.svg'
+import rakezIcon from '/rakez.png'
 import EventIcon from '@mui/icons-material/Event'
 import PeopleIcon from '@mui/icons-material/People'
 import WorkIcon from '@mui/icons-material/Work'

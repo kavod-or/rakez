@@ -15,6 +15,7 @@ class Event(models.Model):
         db_index=True,
     )
     pin_hash = models.CharField(max_length=255, blank=True)
+    pin_display = models.CharField(max_length=6, blank=True)
     name = models.CharField(max_length=255)
     start = models.DateTimeField()
     end = models.DateTimeField()

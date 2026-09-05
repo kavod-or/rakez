@@ -26,6 +26,12 @@ export function EventDetails() {
 
     return (
         <Stack spacing={0.75} sx={{mt: 1.5}}>
+            {activeEvent.display_pin && (
+                <Box>
+                    <Typography variant="caption" color="text.secondary">PIN</Typography>
+                    <Typography variant="body2" sx={{fontFamily: 'monospace'}}>{activeEvent.display_pin}</Typography>
+                </Box>
+            )}
             <Box>
                 <Typography variant="caption" color="text.secondary">Timezone</Typography>
                 <Typography variant="body2">{activeEvent.timezone}</Typography>
