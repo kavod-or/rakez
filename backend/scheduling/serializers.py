@@ -11,6 +11,13 @@ from drf_spectacular.utils import extend_schema_field
 from accounts.models import EventRole, GlobalRole
 from .models import Shift, ShiftPosition, ShiftAssignment, Event
 
+from staffing.models import Staff
+from .rules.base import (
+    RULE_SEVERITY_ERROR,
+    RULE_SEVERITY_WARNING,
+    RULE_SEVERITY_INFO,
+)
+
 
 class FullCleanModelSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
@@ -98,14 +105,14 @@ class EventSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return None
         if user.is_superuser or GlobalRole.objects.filter(
-            user=user,
-            role=GlobalRole.Role.GLOBAL_MANAGER,
+                user=user,
+                role=GlobalRole.Role.GLOBAL_MANAGER,
         ).exists():
             return event.pin_display or None
         if EventRole.objects.filter(
-            user=user,
-            event=event,
-            role=EventRole.Role.EVENT_MANAGER,
+                user=user,
+                event=event,
+                role=EventRole.Role.EVENT_MANAGER,
         ).exists():
             return event.pin_display or None
         return None
@@ -163,3 +170,34 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         return attrs
+
+
+class AssignmentValidationInputSerializer(serializers.Serializer):
+    staff = serializers.PrimaryKeyRelatedField(
+        queryset=Staff.objects.all(),
+    )
+    shift_position = serializers.PrimaryKeyRelatedField(
+        queryset=ShiftPosition.objects.select_related(
+            "shift__event",
+            "shift__service",
+        ),
+    )
+
+
+class ViolationSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    severity = serializers.ChoiceField(
+        choices=[
+            RULE_SEVERITY_ERROR,
+            RULE_SEVERITY_WARNING,
+            RULE_SEVERITY_INFO,
+        ],
+    )
+    message = serializers.CharField()
+    context = serializers.JSONField()
+    overridable = serializers.BooleanField()
+
+
+class AssignmentValidationResultSerializer(serializers.Serializer):
+    allowed = serializers.BooleanField()
+    violations = ViolationSerializer(many=True)

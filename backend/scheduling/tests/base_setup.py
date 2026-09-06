@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 
 from accounts.models import EventRole, GlobalRole, ServiceRole
 from scheduling.models import Event, Shift, ShiftAssignment, ShiftPosition
-from staffing.models import Service, Staff, Position
+from staffing.models import Service, Staff, Position, StaffPosition
 
 
 class SchedulingPermissionsBase(APITestCase):
@@ -134,3 +134,10 @@ class SchedulingPermissionsBase(APITestCase):
             shift_position=self.shift_position_2,
             staff=self.staff_2,
         )
+
+        for staff in (self.staff_1, self.staff_2):
+            for position in (self.position_1, self.position_2):
+                StaffPosition.objects.create(
+                    staff=staff,
+                    position=position,
+                )

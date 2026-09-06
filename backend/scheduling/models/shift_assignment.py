@@ -62,6 +62,28 @@ class ShiftAssignment(models.Model):
         if current_assignment_count >= self.shift_position.amount:
             errors["shift_position"] = "This shift position is already fully assigned."
 
+        if self.staff_id:
+            from scheduling.rules.base import (
+                RULE_SEVERITY_ERROR,
+                SchedulingContext,
+            )
+            from scheduling.rules.registry import rule_engine
+            
+            result = rule_engine.check(
+                SchedulingContext(
+                    staff=self.staff,
+                    shift_position=self.shift_position,
+                    assignment_id=self.pk,
+                )
+            )
+
+            if not result.allowed:
+                errors["staff"] = [
+                    violation.message
+                    for violation in result.violations
+                    if violation.severity == RULE_SEVERITY_ERROR
+                ]
+
         if errors:
             raise ValidationError(errors)
 
